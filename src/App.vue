@@ -1,110 +1,106 @@
 <template>
-    <div id="app">
-<!--        <div class="left_input_box">-->
-<!--            <textarea v-model="currentEditItemMetaData"></textarea>-->
-<!--            <div class="control_box">-->
-<!--                <div class="button add" @click="addFieldItem">添加数据列</div>-->
-<!--                <div class="button cancel" @click="cancelEditItem">重置编辑</div>-->
-<!--                <div class="button save" @click="saveEditItem">保存编辑</div>-->
-<!--                <div class="button dark_mode" @click="changeThemeColor">切换{{ darkMode ? '日间' : '夜间' }}模式</div>-->
-<!--            </div>-->
-<!--        </div>-->
-        <div class="right_display_box">
-            <div class="table_box">
-<!--                <table>-->
-<!--                    <tr>-->
-<!--                        <th>时间</th>-->
-<!--                        <template v-for="(item, index) in tableColumnList">-->
-<!--                            <th :key="index">-->
-<!--                                <input title="是否在ECharts中显示此列数据" type="checkbox"-->
-<!--                                       :checked="isCheckedColumn(item)"-->
-<!--                                       @change="columnCheckedChange($event, item)"/>-->
-<!--                                {{ item }}-->
-<!--                            </th>-->
-<!--                        </template>-->
-<!--                        <th>操作</th>-->
-<!--                    </tr>-->
-<!--                    <template v-for="(item, index) in tableDataSource">-->
-<!--                        <tr :key="index">-->
-<!--                            <td>-->
-<!--                                <input title="是否在ECharts中显示行数据" type="checkbox"-->
-<!--                                       :checked="isCheckedDataSource(item)"-->
-<!--                                       @change="dataSourceCheckedChange($event, item)"/>-->
-<!--                                {{ item.gpTime }}-->
-<!--                            </td>-->
-<!--                            <template v-for="(sub_item, sub_index) in tableColumnList">-->
-<!--                                <td :key="sub_index">{{ getTargetData(item.gpData, sub_item, '-') }}</td>-->
-<!--                            </template>-->
-<!--                            <td>-->
-<!--                                <span class="link" @click="editItem(item)">编辑</span>-->
-<!--                                |-->
-<!--                                <span class="link danger" @click="deleteItem(item)">删除</span>-->
-<!--                            </td>-->
-<!--                        </tr>-->
-<!--                    </template>-->
-<!--                </table>-->
-                <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataSource" bordered :pagination="false">
-                    <div slot="filterDropdown"
-                        slot-scope="{setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                        style="padding: 8px">
-<!--                        {{setSelectedKeys}}-->
-<!--                        {{selectedKeys}}-->
-<!--                        {{confirm}}-->
-<!--                        {{clearFilters}}-->
-<!--                        {{column.title}}-->
-<!--                        <input title="是否在ECharts中显示此列数据" type="checkbox"-->
-<!--                               :checked="isCheckedColumn(column)"-->
-<!--                               @change="columnCheckedChange($event, column)"/>-->
-                        是否在ECharts中显示此列数据：
-                        <a-checkbox :checked="isCheckedColumn(column.title)" @change="columnCheckedChange($event, column.title)"
-                                    title="是否在ECharts中显示此列数据" />
-                    </div>
-                    <a-icon
-                        slot="filterIcon"
-                        slot-scope="filtered"
-                        type="search"
-                        :style="{ color: filtered ? '#108ee9' : undefined }"
-                    />
-                    <template slot="time" slot-scope="text, record">
-                        <a-checkbox :checked="isCheckedDataSource(record)" @change="dataSourceCheckedChange($event, record)"
-                                    title="是否在ECharts中显示行数据" />
-                        {{text}}
-                    </template>
-                    <template slot="action" slot-scope="text, records, index">
-                        <a @click="editItem(records)"><a-icon type="form" /> 编辑</a>
-                        <a-divider type="vertical" :key="'record'+index" :text="text"/>
-                        <a-popconfirm title="你要删除这行记录吗？" @confirm="deleteItem(records)">
-                            <a style="color: #ff0000"><a-icon type="delete" /> 删除</a>
-                        </a-popconfirm>
-                    </template>
-                </a-table>
-                {{uncheckedColumn}}
-                <a-button style="display: block; margin: 20px auto;" type="primary" icon="plus">添加</a-button>
-            </div>
-            <div class="chart_box" id="chartBox">
-                <template v-for="(item, index) in tableColumnListFiltered">
-                    <line-charts :key="index" :index="index" class="charts_item" :title="item"
-                                 :x-data="allDate" :y-data="getDataListByKey(item)" />
-                </template>
-            </div>
-        </div>
-
-        <div class="page_loader_box" v-if="pageIsLoading">
-            <div class="page_loader">
-                <div class="loader-inner line-spin-fade-loader">
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
-                    <div></div>
+    <a-spin :spinning="pageIsLoading">
+        <div id="app">
+            <div class="right_display_box">
+                <div class="table_box">
+                    <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataSource" bordered
+                             :pagination="false">
+                        <div slot="filterDropdown"
+                             slot-scope="{setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
+                             style="padding: 8px">
+                            <div>
+                                是否在ECharts中显示此列数据：
+                                <a-checkbox :checked="isCheckedColumn(column.title)"
+                                            @change="columnCheckedChange($event, column.title)"
+                                            title="是否在ECharts中显示此列数据"/>
+                            </div>
+                            <div style="margin-top: 5px;">
+                                权重值：
+                                <a-input-number />
+                            </div>
+                        </div>
+                        <a-icon
+                            slot="filterIcon"
+                            slot-scope="filtered"
+                            type="down-circle"
+                            :style="{ color: filtered ? '#108ee9' : undefined }"
+                        />
+                        <template slot="time" slot-scope="text, record">
+                            <a-checkbox :checked="isCheckedDataSource(record)"
+                                        @change="dataSourceCheckedChange($event, record)"
+                                        title="是否在ECharts中显示行数据"/>
+                            {{ text }}
+                        </template>
+                        <template slot="action" slot-scope="text, records, index">
+                            <a @click="editItem(records)">
+                                <a-icon type="form"/>
+                                编辑</a>
+                            <a-divider type="vertical" :key="'record'+index" :text="text"/>
+                            <a-popconfirm title="你要删除这行记录吗？" @confirm="deleteItem(records)">
+                                <a style="color: #ff0000">
+                                    <a-icon type="delete"/>
+                                    删除</a>
+                            </a-popconfirm>
+                        </template>
+                    </a-table>
+                    <a-button style="display: block; margin: 20px auto;" @click="addListItem"
+                              type="primary" icon="plus">添加
+                    </a-button>
                 </div>
-                <div class="text">{{ pageLoadingText }}</div>
+                <div class="chart_box" id="chartBox">
+                    <template v-for="(item, index) in tableColumnListFiltered">
+                        <line-charts :key="index" :index="index" class="charts_item" :title="item"
+                                     :x-data="allDate" :y-data="getDataListByKey(item)"/>
+                    </template>
+                </div>
             </div>
+
+            <a-modal :title="(currentEditItem.id?'编辑':'新建')+'行数据'" :visible="showEditDialog" :width="800"
+                     @ok="saveEditItem" @cancel="closeEditDialog">
+                <a-form-model ref="ruleForm" :model="currentEditItem" :rules="rules"
+                              :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
+                    <a-form-model-item label="summation" prop="summation" style="margin: 0">
+                        <a-input-number style="width: 100%;" v-model="currentEditItem.summation"/>
+                    </a-form-model-item>
+                    <a-form-model-item label="sumStandard" prop="sumStandard" style="margin: 0">
+                        <a-input-number style="width: 100%;"  v-model="currentEditItem.sumStandard"/>
+                    </a-form-model-item>
+                    <a-form-model-item label="gpTime" prop="gpTime" style="margin: 0">
+                        <a-input v-model="currentEditItem.gpTime"/>
+                    </a-form-model-item>
+
+                    <div class="form_item_box">
+                        <div class="label">下属字段：</div>
+                        <div class="gp_data_list">
+                            <template v-for="(item, index) in currentEditItem.gpData">
+                                <div class="gp_data_item" :key="index">
+                                    <a-form-model-item label="字段名" prop="gpDataName" style="margin: 0">
+                                        <a-input v-model="item.name"/>
+                                    </a-form-model-item>
+                                    <a-form-model-item label="weightNumber" prop="gpDataWeightNumber" style="margin: 0">
+                                        <a-input-number style="width: 100%;"  v-model="item.weightNumber"/>
+                                    </a-form-model-item>
+                                    <a-form-model-item label="minNumber" prop="gpDataMinNumber" style="margin: 0">
+                                        <a-input-number style="width: 100%;"  v-model="item.minNumber"/>
+                                    </a-form-model-item>
+                                    <a-form-model-item label="maxNumber" prop="gpDataMaxNumber" style="margin: 0">
+                                        <a-input-number style="width: 100%;"  v-model="item.maxNumber"/>
+                                    </a-form-model-item>
+                                    <a-form-model-item label="riseStop" prop="gpDataRiseStop" style="margin: 0">
+                                        <a-input-number style="width: 100%;"  v-model="item.riseStop"/>
+                                    </a-form-model-item>
+                                    <a-button type="danger" icon="delete" @click="deleteFieldItem(index)">删除字段项</a-button>
+                                </div>
+                            </template>
+                            <a-button type="primary" icon="plus" @click="addFieldItem">添加字段项</a-button>
+                        </div>
+                    </div>
+
+                </a-form-model>
+            </a-modal>
+
         </div>
-    </div>
+    </a-spin>
 </template>
 
 <script>
@@ -123,20 +119,28 @@ export default {
             pageLoadingText: "页面加载中",
 
             metaDataList: [],
-            currentEditItemMetaData: '{\n' +
-                '    "summation": "1000",\n' +
-                '    "sumStandard": "50",\n' +
-                '    "gpTime": "2021-12-31",\n' +
-                '    "gpData": [\n' +
-                '        {\n' +
-                '            "name": "涨停1",\n' +
-                '            "weightNumber": "0",\n' +
-                '            "riseStop": "80",\n' +
-                '            "maxNumber": "24",\n' +
-                '            "minNumber": "100"\n' +
-                '        }\n' +
-                '    ]\n' +
-                '}',
+
+
+            //编辑对话框
+            showEditDialog: false,
+            currentEditItem: {
+                "summation": "1000",
+                "sumStandard": "50",
+                "gpTime": "2021-12-31",
+                "gpData": [
+                    {"name": "涨停1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                ]
+            },
+            rules: {
+                summation: [{required: true, message: '请输入summation', trigger: 'change'}],
+                sumStandard: [{required: true, message: '请输入sumStandard', trigger: 'change'}],
+                gpTime: [{required: true, message: '请输入gpTime', trigger: 'change'}],
+                // gpDataName: [{required: true, message: '请输入字段名', trigger: 'change'}],
+                // gpDataWeightNumber: [{required: true, message: '请输入WeightNumber', trigger: 'change'}],
+                // gpDataMinNumber: [{required: true, message: '请输入minNumber', trigger: 'change'}],
+                // gpDataMaxNumber: [{required: true, message: '请输入maxNumber', trigger: 'change'}],
+                // gpDataRiseStop: [{required: true, message: '请输入riseNumber', trigger: 'change'}],
+            },
 
             timer: false,
             screenWidth: document.body.clientWidth,
@@ -151,23 +155,6 @@ export default {
     },
 
     computed: {
-        // currentEditItem: {
-        //     get: function () {
-        //         let item = "";
-        //         console.log(this.currentEditItemMetaData);
-        //         try {
-        //             item = JSON.parse(this.currentEditItemMetaData);
-        //             item = JSON.stringify(item, null, 4);
-        //         } catch {
-        //             item = this.currentEditItemMetaData;
-        //         }
-        //
-        //         return item;
-        //     },
-        //     set: function (e) {
-        //         this.currentEditItemMetaData = e;
-        //     }
-        // },
 
         tableDataSource: function () {
             let list = [], itemObject = {};
@@ -176,7 +163,7 @@ export default {
                 try {
                     item = JSON.parse(this.metaDataList[i].gpData);
                     itemObject = this.arrayToObject(item)
-                } catch (err){
+                } catch (err) {
                     console.error(err);
                 }
                 list.push({
@@ -184,7 +171,8 @@ export default {
                     gpTime: this.metaDataList[i].gpTime,
                     gpDataObject: itemObject,
                     gpData: item,
-                    metaData: this.metaDataList[i]});
+                    metaData: this.metaDataList[i]
+                });
             }
             return list
         },
@@ -204,9 +192,9 @@ export default {
             return list;
         },
 
-        tableColumnListFiltered:function (){
+        tableColumnListFiltered: function () {
             let list = [];
-            for(let i=0; i<this.tableColumnList.length; i++){
+            for (let i = 0; i < this.tableColumnList.length; i++) {
                 let index = this.uncheckedColumn.findIndex((item) => {
                     return item === this.tableColumnList[i];
                 })
@@ -217,7 +205,7 @@ export default {
             return list;
         },
 
-        chartsColumns: function (){
+        chartsColumns: function () {
             let columnList = [];
             columnList.push({
                 title: "时间",
@@ -228,10 +216,10 @@ export default {
                     customRender: "time",
                 }
             })
-            for(let i=0;i<this.tableColumnList.length; i++){
+            for (let i = 0; i < this.tableColumnList.length; i++) {
                 columnList.push({
                     title: this.tableColumnList[i],
-                    dataIndex: "gpDataObject."+this.tableColumnList[i]+".data",
+                    dataIndex: "gpDataObject." + this.tableColumnList[i] + ".data",
                     scopedSlots: {
                         filterIcon: 'filterIcon',
                         filterDropdown: 'filterDropdown',
@@ -258,27 +246,13 @@ export default {
         allDate: function () {
             let list = [];
             for (let i = 0; i < this.metaDataList.length; i++) {
-                if(this.isCheckedDataSource(this.metaDataList[i])){
+                if (this.isCheckedDataSource(this.metaDataList[i])) {
                     list.push(this.metaDataList[i].gpTime);
                 }
             }
             return list
         },
 
-        chartsSeriesList: function () {
-            let list = [];
-            for (let i = 0; i < this.tableColumnList.length; i++) {
-                if(this.isCheckedColumn(this.tableColumnList[i])){
-                    list.push({
-                        type: 'line',
-                        name: this.tableColumnList[i],
-                        data: this.getDataListByKey(this.tableColumnList[i])
-                    })
-                }
-            }
-
-            return list;
-        }
     },
 
     methods: {
@@ -331,116 +305,98 @@ export default {
         },
 
         // 数组转对象
-        arrayToObject: function (array){
+        arrayToObject: function (array) {
             let object = {};
-            for(let i=0;i<array.length; i++){
+            for (let i = 0; i < array.length; i++) {
                 object[array[i].name] = array[i]
             }
             return object;
         },
 
+        // 添加一项
+        addListItem: function () {
+            this.currentEditItem = {
+                "summation": "1000",
+                "sumStandard": "50",
+                "gpTime": "2021-12-31",
+                "gpData": [
+                    {"name": "新建字段1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                ]
+            };
+            this.showEditDialog = true;
+        },
 
         // 编辑一项
         editItem: function (item) {
             let _item = JSON.parse(JSON.stringify(item));
             console.log(item);
             _item.metaData.gpData = JSON.parse(_item.metaData.gpData);
-            this.currentEditItemMetaData = JSON.stringify(_item.metaData, null, 4);
+            this.currentEditItem = _item.metaData;
+            this.showEditDialog = true;
         },
 
         // 为一项添加列
         addFieldItem: function () {
-            let currentEditItemMetaData;
-            let item = {
+            this.currentEditItem.gpData.push({
                 "weightNumber": "80",
                 "minNumber": "80",
                 "riseStop": "80",
                 "maxNumber": "80",
-                "name": "新字段"
-            };
-            try {
-                currentEditItemMetaData = JSON.parse(this.currentEditItemMetaData);
-                currentEditItemMetaData.gpData.push(item)
-                currentEditItemMetaData = JSON.stringify(currentEditItemMetaData, null, 4);
-            } catch (err) {
-                console.error("解析失败。", err)
-                alert("当前数据不是正确的JSON，不能追加列数据");
-                currentEditItemMetaData = this.currentEditItemMetaData;
-                // gpData = this.currentEditItemMetaData.gpData + JSON.stringify(item, null, 4);
-            }
-            this.currentEditItemMetaData = currentEditItemMetaData;
+                "name": "新建字段" + (this.currentEditItem.gpData.length+1)
+            });
         },
 
-        // 取消编辑项目
-        cancelEditItem: function () {
-            this.currentEditItemMetaData = '{\n' +
-                '    "summation": "1000",\n' +
-                '    "sumStandard": "50",\n' +
-                '    "gpTime": "2021-12-31",\n' +
-                '    "gpData": [\n' +
-                '        {\n' +
-                '            "name": "涨停1",\n' +
-                '            "weightNumber": "0",\n' +
-                '            "riseStop": "80",\n' +
-                '            "maxNumber": "24",\n' +
-                '            "minNumber": "100"\n' +
-                '        }\n' +
-                '    ]\n' +
-                '}'
+        // 删除字段项目
+        deleteFieldItem: function (index){
+            this.currentEditItem.gpData.splice(index, 1);
         },
+
 
         // 保存编辑项目
         saveEditItem: function () {
             let _this = this;
-            //检查元数据的值是不是正确的JSON。如果不是，拒绝保存
-            let currentEditItemMetaData;
-            try {
-                currentEditItemMetaData = JSON.parse(this.currentEditItemMetaData);
-                // currentEditItemMetaData.gpData = JSON.stringify(currentEditItemMetaData.gpData);
-            } catch (err) {
-                alert("当前数据不是正确的JSON，不能进行保存操作");
-                return false;
-            }
-
-            if (currentEditItemMetaData.createTime) {
-                delete currentEditItemMetaData.createTime;
-            }
-            if (currentEditItemMetaData.updateTime) {
-                delete currentEditItemMetaData.updateTime;
-            }
-            console.log(currentEditItemMetaData)
 
             //调用接口保存
             this.pageIsLoading = true;
-            this.$axios.post(this.baseUrl + "/add", currentEditItemMetaData).then((res) => {
+            this.$axios.post(this.baseUrl + "/add", this.currentEditItem).then((res) => {
                 _this.pageIsLoading = false;
                 console.log(res);
                 if (res.data.success) {
-                    alert("保存成功");
-                    _this.cancelEditItem();
+                    this.$message.success("保存成功");
+                    _this.closeEditDialog();
                     _this.getServerData();
                 } else {
-                    alert("保存失败。"+res.data.message);
+                    this.$message.warn("保存失败。" + res.data.message);
                 }
             }).catch((err) => {
                 _this.pageIsLoading = false;
-                alert("保存错误。"+err.toString());
+                this.$message.error("保存错误。" + err.toString());
                 console.error(err);
             })
         },
 
-        // 渲染底部折线图表
+        // 关闭编辑对话框
+        closeEditDialog: function () {
+            this.currentEditItem = {
+                "summation": "1000",
+                "sumStandard": "50",
+                "gpTime": "2021-12-31",
+                "gpData": [
+                    {"name": "涨停1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                ]
+            };
+            this.showEditDialog = false;
+        },
 
 
         // 切换日间、夜间模式
-        changeThemeColor: function (){
+        changeThemeColor: function () {
             const domTarget = document.querySelector('#app');
 
-            if(this.darkMode){
+            if (this.darkMode) {
                 domTarget.style.setProperty('--background_color', '#ffffff');
                 domTarget.style.setProperty('--text_color', '#000000');
-            }
-            else{
+            } else {
                 domTarget.style.setProperty('--background_color', '#000000');
                 domTarget.style.setProperty('--text_color', '#59f6fb');
             }
@@ -450,20 +406,23 @@ export default {
         },
 
         // 检查此字段是否选中
-        isCheckedColumn: function (item){
-            let index = this.uncheckedColumn.findIndex((sItem) => {return sItem === item})
+        isCheckedColumn: function (item) {
+            let index = this.uncheckedColumn.findIndex((sItem) => {
+                return sItem === item
+            })
             return index === -1
         },
 
         // 此字段选中变化
-        columnCheckedChange: function (e, item){
+        columnCheckedChange: function (e, item) {
             console.log(e, item);
-            let index = this.uncheckedColumn.findIndex((sItem) => {return sItem === item})
-            if(index > -1){
+            let index = this.uncheckedColumn.findIndex((sItem) => {
+                return sItem === item
+            })
+            if (index > -1) {
                 // 将此字段从unChecked 列表移除
                 this.uncheckedColumn.splice(index, 1);
-            }
-            else{
+            } else {
                 // 将字段追加到 unChecked 列表
                 this.uncheckedColumn.push(item);
             }
@@ -471,23 +430,26 @@ export default {
         },
 
         // 此行数据是否选中
-        isCheckedDataSource: function (item){
+        isCheckedDataSource: function (item) {
             console.log(item);
-            let index = this.unCheckedData.findIndex((sItem) => {return sItem === item.id})
+            let index = this.unCheckedData.findIndex((sItem) => {
+                return sItem === item.id
+            })
             return index === -1;
         },
 
         // 此行数据选中变化
-        dataSourceCheckedChange: function (e, item){
+        dataSourceCheckedChange: function (e, item) {
             console.log(item);
             item = JSON.parse(JSON.stringify(item));
             item = item.metaData;
-            let index = this.unCheckedData.findIndex((sItem) => {return sItem === item.id})
-            if(index > -1){
+            let index = this.unCheckedData.findIndex((sItem) => {
+                return sItem === item.id
+            })
+            if (index > -1) {
                 // 将此字段从unChecked 列表移除
                 this.unCheckedData.splice(index, 1);
-            }
-            else{
+            } else {
                 // 将字段追加到 unChecked 列表
                 this.unCheckedData.push(item.id);
             }
@@ -495,21 +457,18 @@ export default {
         },
 
         // 删除一项
-        deleteItem: function (item){
+        deleteItem: function (item) {
             let _this = this;
-            if (confirm("您是否删除记录"+item.metaData.gpTime+"("+item.metaData.id+")")){
-                this.$axios.delete(this.baseUrl+"/delete", {params: {id: item.metaData.id}}).then((res) => {
-                    if(res.data.success){
-                        _this.$message.success("删除成功");
-                        _this.getServerData()
-                    }
-                    else{
-                        _this.$message.warn("删除失败。"+res.data.message);
-                    }
-                }).catch((err) => {
-                    _this.$message.error("删除错误"+err.toString());
-                })
-            }
+            this.$axios.delete(this.baseUrl + "/delete", {params: {id: item.metaData.id}}).then((res) => {
+                if (res.data.success) {
+                    _this.$message.success("删除成功");
+                    _this.getServerData()
+                } else {
+                    _this.$message.warn("删除失败。" + res.data.message);
+                }
+            }).catch((err) => {
+                _this.$message.error("删除错误" + err.toString());
+            })
         },
     },
 
@@ -519,7 +478,7 @@ export default {
 }
 </script>
 
-<style scoped lang="less" >
+<style scoped lang="less">
 * {
     padding: 0;
     margin: 0;
@@ -671,7 +630,7 @@ export default {
             border-top: 2px solid #000000;
             transition: border 200ms ease-in-out;
 
-            .button{
+            .button {
                 flex: auto;
                 height: 50px;
                 display: flex;
@@ -680,24 +639,24 @@ export default {
                 cursor: pointer;
                 user-select: none;
 
-                &.add{
+                &.add {
                     width: 100%;
                     border-bottom: 2px solid #000000;
                     transition: border 200ms ease-in-out;
                 }
 
-                &.cancel{
+                &.cancel {
                     border-right: 2px solid #000000;
                     transition: border 200ms ease-in-out;
                 }
 
-                &.dark_mode{
+                &.dark_mode {
                     width: 100%;
                     border-top: 2px solid #000000;
                     transition: border 200ms ease-in-out;
                 }
 
-                &:hover{
+                &:hover {
                     color: #ffffff;
                     background: #000000;
                     transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
@@ -722,7 +681,7 @@ export default {
             padding: 10px;
         }
 
-        .chart_box{
+        .chart_box {
             width: 100%;
             height: calc(100vh - 20px - 300px);
             overflow: auto;
@@ -730,7 +689,7 @@ export default {
             flex-wrap: wrap;
             align-content: flex-start;
 
-            .charts_item{
+            .charts_item {
                 width: 25%;
                 height: 250px;
             }
@@ -739,6 +698,32 @@ export default {
 
 
 }
+
+.form_item_box {
+    display: flex;
+
+    .label {
+        width: 156px;
+        height: 60px;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .gp_data_list {
+        width: 60%;
+        flex: auto;
+
+        .gp_data_item {
+            border: 1px solid #d9d9d9;
+            margin: 10px 0 10px 0;
+            padding: 20px;
+        }
+    }
+}
+
 
 
 @keyframes line-spin-fade-loader {
