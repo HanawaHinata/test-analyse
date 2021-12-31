@@ -15,7 +15,7 @@ export default {
     name: "lineCharts",
     props: {
         index: {
-            type: Number,
+            type: [Number, String],
             require: true,
             default: 0,
         },

@@ -16,7 +16,11 @@
                             </div>
                             <div style="margin-top: 5px;">
                                 权重值：
-                                <a-input-number />
+                                <a-input-number v-model="weightNumberObject[column.title]" placeholder="0"/>
+                                <a-button type="primary" icon="save" size="small"
+                                          @click="saveWeightNumber(column.title)"
+                                          style="margin-left: 5px;">保存
+                                </a-button>
                             </div>
                         </div>
                         <a-icon
@@ -52,6 +56,9 @@
                         <line-charts :key="index" :index="index" class="charts_item" :title="item"
                                      :x-data="allDate" :y-data="getDataListByKey(item)"/>
                     </template>
+
+                    <line-charts class="charts_item" title="总和" index="endSum"
+                                 :x-data="allDate" :y-data="getDataListByKey('endSum')"/>
                 </div>
             </div>
 
@@ -63,7 +70,7 @@
                         <a-input-number style="width: 100%;" v-model="currentEditItem.summation"/>
                     </a-form-model-item>
                     <a-form-model-item label="sumStandard" prop="sumStandard" style="margin: 0">
-                        <a-input-number style="width: 100%;"  v-model="currentEditItem.sumStandard"/>
+                        <a-input-number style="width: 100%;" v-model="currentEditItem.sumStandard"/>
                     </a-form-model-item>
                     <a-form-model-item label="gpTime" prop="gpTime" style="margin: 0">
                         <a-input v-model="currentEditItem.gpTime"/>
@@ -77,19 +84,20 @@
                                     <a-form-model-item label="字段名" prop="gpDataName" style="margin: 0">
                                         <a-input v-model="item.name"/>
                                     </a-form-model-item>
-                                    <a-form-model-item label="weightNumber" prop="gpDataWeightNumber" style="margin: 0">
-                                        <a-input-number style="width: 100%;"  v-model="item.weightNumber"/>
-                                    </a-form-model-item>
+                                    <!--                                    <a-form-model-item label="weightNumber" prop="gpDataWeightNumber" style="margin: 0">-->
+                                    <!--                                        <a-input-number style="width: 100%;"  v-model="item.weightNumber"/>-->
+                                    <!--                                    </a-form-model-item>-->
                                     <a-form-model-item label="minNumber" prop="gpDataMinNumber" style="margin: 0">
-                                        <a-input-number style="width: 100%;"  v-model="item.minNumber"/>
+                                        <a-input-number style="width: 100%;" v-model="item.minNumber"/>
                                     </a-form-model-item>
                                     <a-form-model-item label="maxNumber" prop="gpDataMaxNumber" style="margin: 0">
-                                        <a-input-number style="width: 100%;"  v-model="item.maxNumber"/>
+                                        <a-input-number style="width: 100%;" v-model="item.maxNumber"/>
                                     </a-form-model-item>
                                     <a-form-model-item label="riseStop" prop="gpDataRiseStop" style="margin: 0">
-                                        <a-input-number style="width: 100%;"  v-model="item.riseStop"/>
+                                        <a-input-number style="width: 100%;" v-model="item.riseStop"/>
                                     </a-form-model-item>
-                                    <a-button type="danger" icon="delete" @click="deleteFieldItem(index)">删除字段项</a-button>
+                                    <a-button type="danger" icon="delete" @click="deleteFieldItem(index)">删除字段项
+                                    </a-button>
                                 </div>
                             </template>
                             <a-button type="primary" icon="plus" @click="addFieldItem">添加字段项</a-button>
@@ -114,7 +122,7 @@ export default {
     components: {LineCharts},
     data() {
         return {
-            baseUrl: "//139.224.41.178:8073/wealth/apcount",
+            baseUrl: "//139.224.41.178:8073/wealth",
             pageIsLoading: true,
             pageLoadingText: "页面加载中",
 
@@ -131,6 +139,8 @@ export default {
                     {"name": "涨停1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
                 ]
             },
+            weightNumberList: [],
+            weightNumberObject: {},
             rules: {
                 summation: [{required: true, message: '请输入summation', trigger: 'change'}],
                 sumStandard: [{required: true, message: '请输入sumStandard', trigger: 'change'}],
@@ -169,6 +179,7 @@ export default {
                 list.push({
                     id: this.metaDataList[i].id,
                     gpTime: this.metaDataList[i].gpTime,
+                    endSum: this.metaDataList[i].endSum,
                     gpDataObject: itemObject,
                     gpData: item,
                     metaData: this.metaDataList[i]
@@ -264,7 +275,7 @@ export default {
                 size: 99999
             }
             this.pageIsLoading = true;
-            this.$axios.get(this.baseUrl + "/list", {params: queryParam}).then((result) => {
+            this.$axios.get(this.baseUrl + "/apcount/list", {params: queryParam}).then((result) => {
                 _this.pageIsLoading = false;
                 let res = result.data
                 if (res.success) {
@@ -295,10 +306,16 @@ export default {
         // 根据 key 获取所有的值
         getDataListByKey: function (key) {
             let list = [];
-            for (let i = 0; i < this.tableDataSource.length; i++) {
-                let dataList = this.tableDataSource[i].gpData;
-                let value = this.getTargetData(dataList, key, 0);
-                list.push(value);
+            if (key === 'endSum') {
+                for (let i = 0; i < this.tableDataSource.length; i++) {
+                    list.push(this.tableDataSource[i].endSum);
+                }
+            } else {
+                for (let i = 0; i < this.tableDataSource.length; i++) {
+                    let dataList = this.tableDataSource[i].gpData;
+                    let value = this.getTargetData(dataList, key, 0);
+                    list.push(value);
+                }
             }
 
             return list;
@@ -342,12 +359,12 @@ export default {
                 "minNumber": "80",
                 "riseStop": "80",
                 "maxNumber": "80",
-                "name": "新建字段" + (this.currentEditItem.gpData.length+1)
+                "name": "新建字段" + (this.currentEditItem.gpData.length + 1)
             });
         },
 
         // 删除字段项目
-        deleteFieldItem: function (index){
+        deleteFieldItem: function (index) {
             this.currentEditItem.gpData.splice(index, 1);
         },
 
@@ -358,7 +375,7 @@ export default {
 
             //调用接口保存
             this.pageIsLoading = true;
-            this.$axios.post(this.baseUrl + "/add", this.currentEditItem).then((res) => {
+            this.$axios.post(this.baseUrl + "/apcount/add", this.currentEditItem).then((res) => {
                 _this.pageIsLoading = false;
                 console.log(res);
                 if (res.data.success) {
@@ -429,6 +446,66 @@ export default {
 
         },
 
+        // 获取所有权重值
+        getAllWeightNumber: function () {
+            let _this = this;
+            this.$axios.get(this.baseUrl + "/gpweigh/list", {size: 99999}).then((res) => {
+                if (res.data.success) {
+                    console.log("获取权值。", res.data)
+                } else {
+                    _this.$message.warn("获取权值失败。" + res.data.message);
+                }
+            }).catch((err) => {
+                if (err.response) {
+                    _this.$message.error("获取权值错误。" + err.response.data.message);
+                } else {
+                    _this.$message.error("获取权值错误。" + err.toString())
+                }
+            })
+        },
+
+        // 权重值保存
+        saveWeightNumber: function (columnName) {
+            let _this = this;
+            let weightNumber = this.weightNumberObject[columnName];
+            if (weightNumber == null || weightNumber === "") {
+                weightNumber = 0
+            }
+            // 检查添加还是编辑
+            let index = this.weightNumberList.findIndex((item) => {
+                return item.column === columnName
+            });
+            let queryUrl, queryParam, queryMethod;
+            queryParam = {
+                name: columnName,
+                weightNumber: weightNumber
+            }
+            if (index > -1) {
+                // 编辑
+                queryUrl = this.baseUrl + "/gpweigh/edit";
+                queryMethod = "PUT";
+            } else {
+                // 添加
+                queryUrl = this.baseUrl + "/gpweigh/add";
+                queryMethod = "POST";
+            }
+            this.$axios({url: queryUrl, data: queryParam, method: queryMethod}).then((res) => {
+                if (res.data.success) {
+                    console.log("保存权值。", res.data)
+                    _this.getAllWeightNumber();
+                    _this.getServerData()
+                } else {
+                    _this.$message.warn("保存权值失败。" + res.data.message);
+                }
+            }).catch((err) => {
+                if (err.response) {
+                    _this.$message.error("保存权值错误。" + err.response.data.message);
+                } else {
+                    _this.$message.error("保存权值错误。" + err.toString())
+                }
+            })
+        },
+
         // 此行数据是否选中
         isCheckedDataSource: function (item) {
             console.log(item);
@@ -473,6 +550,7 @@ export default {
     },
 
     created: function () {
+        this.getAllWeightNumber();
         this.getServerData()
     },
 }
@@ -723,7 +801,6 @@ export default {
         }
     }
 }
-
 
 
 @keyframes line-spin-fade-loader {
