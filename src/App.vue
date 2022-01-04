@@ -66,13 +66,13 @@
                      @ok="saveEditItem" @cancel="closeEditDialog">
                 <a-form-model ref="ruleForm" :model="currentEditItem" :rules="rules"
                               :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
-                    <a-form-model-item label="summation" prop="summation" style="margin: 0">
+                    <a-form-model-item label="总和" prop="summation" style="margin: 0">
                         <a-input-number style="width: 100%;" v-model="currentEditItem.summation"/>
                     </a-form-model-item>
-                    <a-form-model-item label="sumStandard" prop="sumStandard" style="margin: 0">
+                    <a-form-model-item label="总和标准" prop="sumStandard" style="margin: 0">
                         <a-input-number style="width: 100%;" v-model="currentEditItem.sumStandard"/>
                     </a-form-model-item>
-                    <a-form-model-item label="gpTime" prop="gpTime" style="margin: 0">
+                    <a-form-model-item label="时间" prop="gpTime" style="margin: 0">
                         <a-input v-model="currentEditItem.gpTime"/>
                     </a-form-model-item>
 
@@ -87,13 +87,13 @@
                                     <!--                                    <a-form-model-item label="weightNumber" prop="gpDataWeightNumber" style="margin: 0">-->
                                     <!--                                        <a-input-number style="width: 100%;"  v-model="item.weightNumber"/>-->
                                     <!--                                    </a-form-model-item>-->
-                                    <a-form-model-item label="minNumber" prop="gpDataMinNumber" style="margin: 0">
+                                    <a-form-model-item label="最小区间" prop="gpDataMinNumber" style="margin: 0">
                                         <a-input-number style="width: 100%;" v-model="item.minNumber"/>
                                     </a-form-model-item>
-                                    <a-form-model-item label="maxNumber" prop="gpDataMaxNumber" style="margin: 0">
+                                    <a-form-model-item label="最大区间" prop="gpDataMaxNumber" style="margin: 0">
                                         <a-input-number style="width: 100%;" v-model="item.maxNumber"/>
                                     </a-form-model-item>
-                                    <a-form-model-item label="riseStop" prop="gpDataRiseStop" style="margin: 0">
+                                    <a-form-model-item label="自定义值" prop="gpDataRiseStop" style="margin: 0">
                                         <a-input-number style="width: 100%;" v-model="item.riseStop"/>
                                     </a-form-model-item>
                                     <a-button type="danger" icon="delete" @click="deleteFieldItem(index)">删除字段项
@@ -348,7 +348,7 @@ export default {
         editItem: function (item) {
             let _item = JSON.parse(JSON.stringify(item));
             console.log(item);
-            _item.metaData.gpData = JSON.parse(_item.metaData.gpData);
+            // _item.metaData.gpData = JSON.parse(_item.metaData.gpData);
             this.currentEditItem = _item.metaData;
             this.showEditDialog = true;
         },
