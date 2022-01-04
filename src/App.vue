@@ -171,7 +171,8 @@ export default {
             for (let i = 0; i < this.metaDataList.length; i++) {
                 let item = {};
                 try {
-                    item = JSON.parse(this.metaDataList[i].gpData);
+                    // item = JSON.parse(this.metaDataList[i].gpData);
+                    item = this.metaDataList[i].gpData;
                     itemObject = this.arrayToObject(item)
                 } catch (err) {
                     console.error(err);
@@ -279,7 +280,7 @@ export default {
                 _this.pageIsLoading = false;
                 let res = result.data
                 if (res.success) {
-                    _this.metaDataList = res.result.records;
+                    _this.metaDataList = res.result;
                 } else {
                     _this.metaDataList = [];
                 }
@@ -449,9 +450,11 @@ export default {
         // 获取所有权重值
         getAllWeightNumber: function () {
             let _this = this;
-            this.$axios.get(this.baseUrl + "/gpweigh/list", {size: 99999}).then((res) => {
+            this.$axios.get(this.baseUrl + "/gpweigh/list", {params: {size: 99999, page: 1}}).then((res) => {
                 if (res.data.success) {
                     console.log("获取权值。", res.data)
+                    _this.weightNumberList = res.data.result.records;
+                    _this.weightNumberObject = this.getWeightObject(res.data.result.records);
                 } else {
                     _this.$message.warn("获取权值失败。" + res.data.message);
                 }
@@ -464,6 +467,15 @@ export default {
             })
         },
 
+        // 权重list转object
+        getWeightObject: function (list){
+            let object = {};
+            for(let i=0; i<list.length; i++){
+                object[list[i].name] = list[i].weightNumber
+            }
+            return object;
+        },
+
         // 权重值保存
         saveWeightNumber: function (columnName) {
             let _this = this;
@@ -473,7 +485,7 @@ export default {
             }
             // 检查添加还是编辑
             let index = this.weightNumberList.findIndex((item) => {
-                return item.column === columnName
+                return item.name === columnName
             });
             let queryUrl, queryParam, queryMethod;
             queryParam = {
@@ -484,6 +496,7 @@ export default {
                 // 编辑
                 queryUrl = this.baseUrl + "/gpweigh/edit";
                 queryMethod = "PUT";
+                queryParam.id = this.weightNumberList[index].id;
             } else {
                 // 添加
                 queryUrl = this.baseUrl + "/gpweigh/add";
@@ -769,7 +782,7 @@ export default {
 
             .charts_item {
                 width: 25%;
-                height: 250px;
+                height: 300px;
             }
         }
     }
