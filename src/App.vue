@@ -373,10 +373,18 @@ export default {
         // 保存编辑项目
         saveEditItem: function () {
             let _this = this;
-
+            let queryParam = JSON.parse(JSON.stringify(this.currentEditItem)), queryMethod, queryUrl;
+            queryParam.gpData = JSON.stringify(queryParam.gpData);
+            if (queryParam.id) {
+                queryUrl = "/apcount/edit";
+                queryMethod = "PUT";
+            } else {
+                queryUrl = "/apcount/add";
+                queryMethod = "POST";
+            }
             //调用接口保存
             this.pageIsLoading = true;
-            this.$axios.post(this.baseUrl + "/apcount/add", this.currentEditItem).then((res) => {
+            this.$axios({url: this.baseUrl + queryUrl, data: queryParam, method: queryMethod}).then((res) => {
                 _this.pageIsLoading = false;
                 console.log(res);
                 if (res.data.success) {
@@ -468,9 +476,9 @@ export default {
         },
 
         // 权重list转object
-        getWeightObject: function (list){
+        getWeightObject: function (list) {
             let object = {};
-            for(let i=0; i<list.length; i++){
+            for (let i = 0; i < list.length; i++) {
                 object[list[i].name] = list[i].weightNumber
             }
             return object;
@@ -549,7 +557,7 @@ export default {
         // 删除一项
         deleteItem: function (item) {
             let _this = this;
-            this.$axios.delete(this.baseUrl + "/delete", {params: {id: item.metaData.id}}).then((res) => {
+            this.$axios.delete(this.baseUrl + "/apcount/delete", {params: {id: item.metaData.id}}).then((res) => {
                 if (res.data.success) {
                     _this.$message.success("删除成功");
                     _this.getServerData()
@@ -570,7 +578,7 @@ export default {
 </script>
 
 <style scoped lang="less">
-* {
+html, body, #app{
     padding: 0;
     margin: 0;
 }
@@ -775,10 +783,12 @@ export default {
         .chart_box {
             width: 100%;
             height: calc(100vh - 20px - 300px);
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: hidden;
             display: flex;
             flex-wrap: wrap;
             align-content: flex-start;
+            flex: auto;
 
             .charts_item {
                 width: 25%;
