@@ -231,7 +231,7 @@ export default {
             for (let i = 0; i < this.tableColumnList.length; i++) {
                 columnList.push({
                     title: this.tableColumnList[i],
-                    dataIndex: "gpDataObject." + this.tableColumnList[i] + ".data",
+                    dataIndex: "gpDataObject." + this.tableColumnList[i] + ".riseStop",
                     scopedSlots: {
                         filterIcon: 'filterIcon',
                         filterDropdown: 'filterDropdown',
