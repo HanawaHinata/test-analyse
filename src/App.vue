@@ -1,34 +1,46 @@
 <template>
     <a-spin :spinning="pageIsLoading">
         <div id="app">
+            <div class="left_input_box">
+                <table>
+                    <tr>
+                        <th>指标</th>
+                        <th>低极致</th>
+                        <th>高极致</th>
+                        <th>权重</th>
+                        <th>图形</th>
+                    </tr>
+                    <template v-for="(item, index) in tableColumnList">
+                        <tr :key="index">
+                            <td>{{ item }}</td>
+                            <td>
+                                <input style="width: 50px;" v-model="weightNumberObject[item].minNumber"
+                                       placeholder="0"/>
+                            </td>
+                            <td>
+                                <input style="width: 50px;" v-model="weightNumberObject[item].maxNumber"
+                                       placeholder="0"/>
+                            </td>
+                            <td>
+                                <input style="width: 50px;" v-model="weightNumberObject[item].weightNumber"
+                                       placeholder="0"/>
+                            </td>
+                            <td>
+                                <a-checkbox :checked="isCheckedColumn(item)"
+                                            @change="columnCheckedChange($event, item)"
+                                            title="是否在ECharts中显示此列数据"/>
+                            </td>
+                        </tr>
+                    </template>
+                </table>
+                <a-button type="primary" icon="save" @click="saveColumnConfig"
+                          style="margin-top: 10px;">保存列配置
+                </a-button>
+            </div>
             <div class="right_display_box">
                 <div class="table_box">
                     <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataSource" bordered
                              :pagination="false">
-                        <div slot="filterDropdown"
-                             slot-scope="{setSelectedKeys, selectedKeys, confirm, clearFilters, column }"
-                             style="padding: 8px">
-                            <div>
-                                是否在ECharts中显示此列数据：
-                                <a-checkbox :checked="isCheckedColumn(column.title)"
-                                            @change="columnCheckedChange($event, column.title)"
-                                            title="是否在ECharts中显示此列数据"/>
-                            </div>
-                            <div style="margin-top: 5px;">
-                                权重值：
-                                <a-input-number v-model="weightNumberObject[column.title]" placeholder="0"/>
-                                <a-button type="primary" icon="save" size="small"
-                                          @click="saveWeightNumber(column.title)"
-                                          style="margin-left: 5px;">保存
-                                </a-button>
-                            </div>
-                        </div>
-                        <a-icon
-                            slot="filterIcon"
-                            slot-scope="filtered"
-                            type="down-circle"
-                            :style="{ color: filtered ? '#108ee9' : undefined }"
-                        />
                         <template slot="time" slot-scope="text, record">
                             <a-checkbox :checked="isCheckedDataSource(record)"
                                         @change="dataSourceCheckedChange($event, record)"
@@ -52,13 +64,14 @@
                     </a-button>
                 </div>
                 <div class="chart_box" id="chartBox">
+                    <line-charts class="charts_item" title="情绪指数" index="endSum"
+                                 :x-data="allDate" :y-data="getDataListByKey('endSum')"/>
+                    <line-charts class="charts_item" title="情绪温度" index="dataSum"
+                                 :x-data="allDate" :y-data="getDataListByKey('dataSum')"/>
                     <template v-for="(item, index) in tableColumnListFiltered">
                         <line-charts :key="index" :index="index" class="charts_item" :title="item"
                                      :x-data="allDate" :y-data="getDataListByKey(item)"/>
                     </template>
-
-                    <line-charts class="charts_item" title="总和" index="endSum"
-                                 :x-data="allDate" :y-data="getDataListByKey('endSum')"/>
                 </div>
             </div>
 
@@ -76,33 +89,24 @@
                         <a-input v-model="currentEditItem.gpTime"/>
                     </a-form-model-item>
 
-                    <div class="form_item_box">
-                        <div class="label">下属字段：</div>
-                        <div class="gp_data_list">
-                            <template v-for="(item, index) in currentEditItem.gpData">
-                                <div class="gp_data_item" :key="index">
-                                    <a-form-model-item label="字段名" prop="gpDataName" style="margin: 0">
-                                        <a-input v-model="item.name"/>
-                                    </a-form-model-item>
-                                    <!--                                    <a-form-model-item label="weightNumber" prop="gpDataWeightNumber" style="margin: 0">-->
-                                    <!--                                        <a-input-number style="width: 100%;"  v-model="item.weightNumber"/>-->
-                                    <!--                                    </a-form-model-item>-->
-                                    <a-form-model-item label="最小区间" prop="gpDataMinNumber" style="margin: 0">
-                                        <a-input-number style="width: 100%;" v-model="item.minNumber"/>
-                                    </a-form-model-item>
-                                    <a-form-model-item label="最大区间" prop="gpDataMaxNumber" style="margin: 0">
-                                        <a-input-number style="width: 100%;" v-model="item.maxNumber"/>
-                                    </a-form-model-item>
-                                    <a-form-model-item label="自定义值" prop="gpDataRiseStop" style="margin: 0">
-                                        <a-input-number style="width: 100%;" v-model="item.riseStop"/>
-                                    </a-form-model-item>
-                                    <a-button type="danger" icon="delete" @click="deleteFieldItem(index)">删除字段项
-                                    </a-button>
-                                </div>
-                            </template>
-                            <a-button type="primary" icon="plus" @click="addFieldItem">添加字段项</a-button>
+                    <template v-for="(item, index) in currentEditItem.gpData">
+                        <div class="form_item_box" :key="index">
+                            <div class="label">
+                                <a-input placeholder="字段名" style="width: 100px;margin-right: 5px;" v-model="item.name"/>
+                                ：
+                            </div>
+                            <a-input-number class="input" v-model="item.riseStop"/>
+
+                            <a-button type="danger" icon="delete" @click="deleteFieldItem(index)"
+                                      style="margin-left: 10px;">
+                                删除
+                            </a-button>
                         </div>
-                    </div>
+                    </template>
+                    <a-button type="primary" icon="plus" @click="addFieldItem"
+                              style="display: block;width: fit-content; margin: 0 0 0 auto;">添加字段项
+                    </a-button>
+
 
                 </a-form-model>
             </a-modal>
@@ -122,7 +126,7 @@ export default {
     components: {LineCharts},
     data() {
         return {
-            baseUrl: "//139.224.41.178:8073/wealth",
+            baseUrl: "//139.224.41.178:8072/wealth",
             pageIsLoading: true,
             pageLoadingText: "页面加载中",
 
@@ -136,7 +140,7 @@ export default {
                 "sumStandard": "50",
                 "gpTime": "2021-12-31",
                 "gpData": [
-                    {"name": "涨停1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                    {"name": "涨停1", "riseStop": "80"}
                 ]
             },
             weightNumberList: [],
@@ -145,11 +149,6 @@ export default {
                 summation: [{required: true, message: '请输入summation', trigger: 'change'}],
                 sumStandard: [{required: true, message: '请输入sumStandard', trigger: 'change'}],
                 gpTime: [{required: true, message: '请输入gpTime', trigger: 'change'}],
-                // gpDataName: [{required: true, message: '请输入字段名', trigger: 'change'}],
-                // gpDataWeightNumber: [{required: true, message: '请输入WeightNumber', trigger: 'change'}],
-                // gpDataMinNumber: [{required: true, message: '请输入minNumber', trigger: 'change'}],
-                // gpDataMaxNumber: [{required: true, message: '请输入maxNumber', trigger: 'change'}],
-                // gpDataRiseStop: [{required: true, message: '请输入riseNumber', trigger: 'change'}],
             },
 
             timer: false,
@@ -171,7 +170,6 @@ export default {
             for (let i = 0; i < this.metaDataList.length; i++) {
                 let item = {};
                 try {
-                    // item = JSON.parse(this.metaDataList[i].gpData);
                     item = this.metaDataList[i].gpData;
                     itemObject = this.arrayToObject(item)
                 } catch (err) {
@@ -181,6 +179,7 @@ export default {
                     id: this.metaDataList[i].id,
                     gpTime: this.metaDataList[i].gpTime,
                     endSum: this.metaDataList[i].endSum,
+                    dataSum: this.metaDataList[i].dataSum,
                     gpDataObject: itemObject,
                     gpData: item,
                     metaData: this.metaDataList[i]
@@ -232,10 +231,6 @@ export default {
                 columnList.push({
                     title: this.tableColumnList[i],
                     dataIndex: "gpDataObject." + this.tableColumnList[i] + ".riseStop",
-                    scopedSlots: {
-                        filterIcon: 'filterIcon',
-                        filterDropdown: 'filterDropdown',
-                    },
                     align: "center"
                 })
             }
@@ -311,6 +306,10 @@ export default {
                 for (let i = 0; i < this.tableDataSource.length; i++) {
                     list.push(this.tableDataSource[i].endSum);
                 }
+            } else if (key === 'dataSum') {
+                for (let i = 0; i < this.tableDataSource.length; i++) {
+                    list.push(this.tableDataSource[i].dataSum);
+                }
             } else {
                 for (let i = 0; i < this.tableDataSource.length; i++) {
                     let dataList = this.tableDataSource[i].gpData;
@@ -338,7 +337,7 @@ export default {
                 "sumStandard": "50",
                 "gpTime": "2021-12-31",
                 "gpData": [
-                    {"name": "新建字段1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                    {"name": "涨停1", "riseStop": "80"}
                 ]
             };
             this.showEditDialog = true;
@@ -356,10 +355,7 @@ export default {
         // 为一项添加列
         addFieldItem: function () {
             this.currentEditItem.gpData.push({
-                "weightNumber": "80",
-                "minNumber": "80",
                 "riseStop": "80",
-                "maxNumber": "80",
                 "name": "新建字段" + (this.currentEditItem.gpData.length + 1)
             });
         },
@@ -408,7 +404,7 @@ export default {
                 "sumStandard": "50",
                 "gpTime": "2021-12-31",
                 "gpData": [
-                    {"name": "涨停1", "weightNumber": "0", "riseStop": "80", "maxNumber": "24", "minNumber": "100"}
+                    {"name": "涨停1", "riseStop": "80"}
                 ]
             };
             this.showEditDialog = false;
@@ -479,7 +475,12 @@ export default {
         getWeightObject: function (list) {
             let object = {};
             for (let i = 0; i < list.length; i++) {
-                object[list[i].name] = list[i].weightNumber
+                object[list[i].name] = {
+                    weightNumber: list[i].weightNumber,
+                    minNumber: list[i].minNumber,
+                    maxNumber: list[i].maxNumber,
+                    id: list[i].id,
+                }
             }
             return object;
         },
@@ -523,6 +524,39 @@ export default {
                     _this.$message.error("保存权值错误。" + err.response.data.message);
                 } else {
                     _this.$message.error("保存权值错误。" + err.toString())
+                }
+            })
+        },
+
+        // 保存全部列配置
+        saveColumnConfig: function () {
+            let _this = this;
+            // 拼接请求数据（object转数组）
+            let array = [];
+            for(let i in this.weightNumberObject){
+                array.push({
+                    id: this.weightNumberObject[i].id,
+                    weightNumber: this.weightNumberObject[i].weightNumber,
+                    maxNumber: this.weightNumberObject[i].maxNumber,
+                    minNumber: this.weightNumberObject[i].minNumber,
+                })
+            }
+            console.log(array);
+            this.pageIsLoading = true;
+            this.$axios.put(this.baseUrl + "/gpweigh/editBatch", array).then((res) => {
+                _this.pageIsLoading = false;
+                if(res.data.success){
+                    _this.$message.success("保存成功");
+                    _this.getAllWeightNumber();
+                }else{
+                    _this.$message.warn("保存失败。"+res.message);
+                }
+            }).catch((err) => {
+                _this.pageIsLoading = false;
+                if(err.response){
+                    _this.$message.error("保存错误。"+err.response.data.message)
+                }else{
+                    _this.$message.error("保存错误。"+err.toString())
                 }
             })
         },
@@ -578,7 +612,7 @@ export default {
 </script>
 
 <style scoped lang="less">
-html, body, #app{
+html, body, #app {
     padding: 0;
     margin: 0;
 }
@@ -702,64 +736,18 @@ html, body, #app{
 
     .left_input_box {
         width: 300px;
-        border-left: 2px solid #000000;
-        border-top: 2px solid #000000;
-        border-bottom: 2px solid #000000;
+        border-right: 2px solid #d9d9d9;
         display: flex;
         flex-flow: column;
         transition: border 200ms ease-in-out;
+        padding: 10px;
 
-        textarea {
-            width: 100%;
-            height: 500px;
-            flex: auto;
-            border: none;
-            outline: none;
-            padding: 10px;
-            box-sizing: border-box;
-            background: none;
-            color: #000000;
-            resize: none;
-            transition: color 200ms ease-in-out;
-        }
+        table {
+            border: 1px solid #d9d9d9;
 
-        .control_box {
-            display: flex;
-            flex-wrap: wrap;
-            border-top: 2px solid #000000;
-            transition: border 200ms ease-in-out;
-
-            .button {
-                flex: auto;
-                height: 50px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                user-select: none;
-
-                &.add {
-                    width: 100%;
-                    border-bottom: 2px solid #000000;
-                    transition: border 200ms ease-in-out;
-                }
-
-                &.cancel {
-                    border-right: 2px solid #000000;
-                    transition: border 200ms ease-in-out;
-                }
-
-                &.dark_mode {
-                    width: 100%;
-                    border-top: 2px solid #000000;
-                    transition: border 200ms ease-in-out;
-                }
-
-                &:hover {
-                    color: #ffffff;
-                    background: #000000;
-                    transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
-                }
+            th, td {
+                border-right: 1px solid #d9d9d9;
+                border-bottom: 1px solid #d9d9d9;
             }
         }
     }
@@ -791,7 +779,7 @@ html, body, #app{
             flex: auto;
 
             .charts_item {
-                width: 25%;
+                width: 100%;
                 height: 300px;
             }
         }
@@ -802,15 +790,20 @@ html, body, #app{
 
 .form_item_box {
     display: flex;
+    margin: 5px 0;
 
     .label {
         width: 156px;
-        height: 60px;
         font-size: 14px;
         color: rgba(0, 0, 0, 0.85);
         display: flex;
         align-items: center;
         justify-content: flex-end;
+    }
+
+    .input {
+        width: 60%;
+        flex: auto;
     }
 
     .gp_data_list {
