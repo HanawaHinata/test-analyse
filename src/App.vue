@@ -387,6 +387,7 @@ export default {
                     this.$message.success("保存成功");
                     _this.closeEditDialog();
                     _this.getServerData();
+                    _this.getAllWeightNumber();
                 } else {
                     this.$message.warn("保存失败。" + res.data.message);
                 }
@@ -515,7 +516,7 @@ export default {
                 if (res.data.success) {
                     console.log("保存权值。", res.data)
                     _this.getAllWeightNumber();
-                    _this.getServerData()
+                    _this.getServerData();
                 } else {
                     _this.$message.warn("保存权值失败。" + res.data.message);
                 }
@@ -594,7 +595,8 @@ export default {
             this.$axios.delete(this.baseUrl + "/apcount/delete", {params: {id: item.metaData.id}}).then((res) => {
                 if (res.data.success) {
                     _this.$message.success("删除成功");
-                    _this.getServerData()
+                    _this.getServerData();
+                    _this.getAllWeightNumber();
                 } else {
                     _this.$message.warn("删除失败。" + res.data.message);
                 }
