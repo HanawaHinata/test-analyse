@@ -1,18 +1,20 @@
 <template>
-    <div class="charts_box" :id="'chartBox'+index"></div>
+    <div class="mixin_charts_box" :id="'chartBox'+index"></div>
 </template>
 
 <script>
 let echarts = require('echarts/lib/echarts')
 // 引入柱状图组件
-require('echarts/lib/chart/line')
+require('echarts/lib/chart/line');
+// 引入柱状图组件
+require('echarts/lib/chart/bar');
 // 引入提示框和title组件
 require('echarts/lib/component/tooltip')
 require('echarts/lib/component/title')
 require('echarts/lib/component/grid')
 
 export default {
-    name: "lineCharts",
+    name: "mixinCharts",
     props: {
         index: {
             type: [Number, String],
@@ -30,11 +32,21 @@ export default {
                 return [];
             }
         },
-        yData: {
+        series: {
             type: Array,
             default: function () {
                 return [];
             }
+        },
+        type: {
+            type: String,
+            require: true,
+            default: "line",
+        },
+        xAxisPosition: {
+            type: String,
+            require: true,
+            default: "top",
         }
     },
     methods: {
@@ -46,47 +58,47 @@ export default {
                 grid: {left: 40, right: 40, bottom: 24, top: 50, containLabel: true},
                 tooltip: {show: true, trigger: 'axis'},
                 xAxis: [{
-                    type: 'category', boundaryGap: false,
-                    axisLabel: {color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 10},
+                    type: 'category', boundaryGap: (this.type==='bar'),
+                    axisLabel: {color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 13},
                     axisLine: {show: true, lineStyle: {color: (this.darkMode ? '#ffffff35' : '#00000035')}},
                     axisTick: {show: false,},
                     splitLine: {show: true, lineStyle: {color: (this.darkMode ? '#ffffff35' : '#00000035')}},
-                    data: this.xData
-                }, {
-                    nameLocation: 'end', position: "bottom",
-                    splitLine: {show: false}, axisTick: {show: false},
-                    axisLine: {show: false}, axisLabel: {show: false}
+                    data: this.xData,
+                    nameLocation: 'end',
+                    position: this.xAxisPosition,
                 }],
                 yAxis: [{
                     type: 'value', name: '值',
-                    nameTextStyle: {color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 10},
-                    axisLabel: {formatter: '{value}', color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 10},
+                    nameTextStyle: {color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 13},
+                    axisLabel: {formatter: '{value}', color: (this.darkMode ? '#00E8E9' : '#000000'), fontSize: 13},
                     axisLine: {lineStyle: {color: (this.darkMode ? '#ffffff35' : '#00000035'),}},
                     axisTick: {show: false},
-                    splitLine: {show: true, lineStyle: {color: (this.darkMode ? '#ffffff35' : '#00000035')}}
+                    splitLine: {show: true, lineStyle: {color: (this.darkMode ? '#ffffff35' : '#00000035')}},
+                    inverse: this.xAxisPosition==='top'
                 }],
-                series: [
-                    {
-                        type: 'line',
-                        name: this.title,
-                        data: this.yData
-                    }
-                ]
+                series: this.series
             };
             console.log("渲染图表", chartBoxOption);
             _this.chartBox.setOption(chartBoxOption, true);
         },
     },
+
     mounted: function () {
         let _this = this;
-        window.addEventListener("resize", function () {
-            window.screenWidth = document.body.clientWidth;
-            _this.screenWidth = window.screenWidth;
+        // window.addEventListener("resize", function () {
+        //     window.screenWidth = document.body.clientWidth;
+        //     _this.screenWidth = window.screenWidth;
+        // })
+
+        let domTarget = document.getElementById('chartBox' + this.index);
+        domTarget.addEventListener("resize", function () {
+            _this.screenWidth = domTarget.screenWidth;
         })
 
         // 重新渲染图表
         this.setChart()
     },
+
     watch: {
         screenWidth(val) {
             console.log(val);
@@ -98,16 +110,24 @@ export default {
             console.log("x变化",e)
             this.setChart()
         },
-        yData: function (e) {
-            console.log("y变化",e)
+        series: function (e) {
+            console.log("series变化",e)
             this.setChart()
-        }
+        },
+        type: function (e) {
+            console.log("type变化",e)
+            this.setChart()
+        },
+        xAxisPosition: function (e) {
+            console.log("xAxisPosition变化",e)
+            this.setChart()
+        },
     }
 }
 </script>
 
 <style scoped>
-.chart_box {
+.mixin_charts_box {
     width: 100%;
     height: 100%;
     overflow: hidden;

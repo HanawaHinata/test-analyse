@@ -2,45 +2,86 @@
     <a-spin :spinning="pageIsLoading">
         <div id="app">
             <div class="left_input_box">
+                <div style="font-size: 12pt;margin: 0 0 10px 0;font-weight: bold;">字段设置</div>
                 <table>
                     <tr>
                         <th>指标</th>
-                        <th>低极致</th>
-                        <th>高极致</th>
-                        <th>权重</th>
-                        <th>图形</th>
+                        <th style="text-align: center;">低极致</th>
+                        <th style="text-align: center;">高极致</th>
+                        <th style="text-align: center;">权重</th>
+                        <th style="text-align: center;">图形</th>
+                        <th style="text-align: center;">操作</th>
                     </tr>
-                    <template v-for="(item, index) in tableColumnList">
+                    <template v-for="(item, index) in weightNumberList">
                         <tr :key="index">
-                            <td>{{ item }}</td>
-                            <td>
-                                <input style="width: 50px;" v-model="weightNumberObject[item].minNumber"
+                            <td>{{ item.name }}</td>
+                            <td style="text-align: center;">
+                                <input style="width: 50px;" v-model="weightNumberObject[item.name].minNumber"
                                        placeholder="0"/>
                             </td>
-                            <td>
-                                <input style="width: 50px;" v-model="weightNumberObject[item].maxNumber"
+                            <td style="text-align: center;">
+                                <input style="width: 50px;" v-model="weightNumberObject[item.name].maxNumber"
                                        placeholder="0"/>
                             </td>
-                            <td>
-                                <input style="width: 50px;" v-model="weightNumberObject[item].weightNumber"
+                            <td style="text-align: center;">
+                                <input style="width: 50px;" v-model="weightNumberObject[item.name].weightNumber"
                                        placeholder="0"/>
                             </td>
-                            <td>
+                            <td style="text-align: center;">
                                 <a-checkbox :checked="isCheckedColumn(item)"
                                             @change="columnCheckedChange($event, item)"
                                             title="是否在ECharts中显示此列数据"/>
                             </td>
+                            <td style="text-align: center;">
+                                <a title="编辑" style="margin-right: 5px;" @click="editColumnItem(item)">
+                                    <a-icon type="form"/>
+                                </a>
+                                <a-popconfirm title="确定要删除此列吗？" @confirm="deleteColumnItem(item)">
+                                    <a title="删除" style="color: red">
+                                        <a-icon type="delete"/>
+                                    </a>
+                                </a-popconfirm>
+                            </td>
                         </tr>
                     </template>
                 </table>
+
+
+                <a-icon type="plus" style="margin: 10px 10px 20px auto;"
+                        @click="editColumnItem({name: '新建字段',maxNumber: 20, minNumber: 0, isShow: true, weightNumber: 0, tbType: 'line'})"/>
                 <a-button type="primary" icon="save" @click="saveColumnConfig"
-                          style="margin-top: 10px;">保存列配置
+                          style="margin-top: 10px;">保存字段配置
                 </a-button>
+
+                <div style="font-size: 12pt;margin: 40px 0 0 0;font-weight: bold;">总和图表设置</div>
+                <div class="form_box">
+                    <div class="item">
+                        <div class="label">图表类型</div>
+                        <a-radio-group class="input" v-model="currentChartType" button-style="solid">
+                            <a-radio-button value="line">折线图</a-radio-button>
+                            <a-radio-button value="bar">柱状图</a-radio-button>
+                        </a-radio-group>
+                    </div>
+                    <div class="item">
+                        <div class="label">是否堆叠</div>
+                        <a-switch v-model="isStack"/>
+                    </div>
+                    <div class="item">
+                        <div class="label">图形展示位置</div>
+                        <a-radio-group class="input" v-model="xAxisPosition" button-style="solid">
+                            <a-radio-button value="top">上</a-radio-button>
+                            <a-radio-button value="bottom">下</a-radio-button>
+                        </a-radio-group>
+                    </div>
+                </div>
             </div>
             <div class="right_display_box">
                 <div class="table_box">
                     <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataSource" bordered
                              :pagination="false">
+                        <template slot="riseStop" slot-scope="text">
+                            {{ text==null||text===''?0:text }}
+                        </template>
                         <template slot="time" slot-scope="text, record">
                             <a-checkbox :checked="isCheckedDataSource(record)"
                                         @change="dataSourceCheckedChange($event, record)"
@@ -64,14 +105,19 @@
                     </a-button>
                 </div>
                 <div class="chart_box" id="chartBox">
-                    <line-charts class="charts_item" title="情绪指数" index="endSum"
+                    <item-charts class="charts_item" title="情绪指数" index="endSum"
                                  :x-data="allDate" :y-data="getDataListByKey('endSum')"/>
-                    <line-charts class="charts_item" title="情绪温度" index="dataSum"
+                    <item-charts class="charts_item" title="情绪温度" index="dataSum"
                                  :x-data="allDate" :y-data="getDataListByKey('dataSum')"/>
                     <template v-for="(item, index) in tableColumnListFiltered">
-                        <line-charts :key="index" :index="index" class="charts_item" :title="item"
+                        {{getChartsType(item)}}
+                        <item-charts :key="index" :index="index" class="charts_item" :title="item"
+                                     :type="getChartsType(item)"
                                      :x-data="allDate" :y-data="getDataListByKey(item)"/>
                     </template>
+                    <mixin-charts class="charts_item" title="总合数据图" index="dataAll" :type="currentChartType"
+                                  :xAxisPosition="xAxisPosition" :x-data="allDate" :series="allDataSeries"/>
+
                 </div>
             </div>
 
@@ -90,23 +136,70 @@
                     </a-form-model-item>
 
                     <template v-for="(item, index) in currentEditItem.gpData">
-                        <div class="form_item_box" :key="index">
-                            <div class="label">
-                                <a-input placeholder="字段名" style="width: 100px;margin-right: 5px;" v-model="item.name"/>
-                                ：
-                            </div>
-                            <a-input-number class="input" v-model="item.riseStop"/>
 
-                            <a-button type="danger" icon="delete" @click="deleteFieldItem(index)"
-                                      style="margin-left: 10px;">
-                                删除
-                            </a-button>
-                        </div>
+                        <a-form-model-item :key="index" :label="item.name" style="margin: 0">
+                            <a-input v-model="item.riseStop" placeholder="0"/>
+                        </a-form-model-item>
+
+                        <!--                        <div class="form_item_box" :key="index">-->
+                        <!--                            <div class="label">-->
+                        <!--                                <a-input placeholder="字段名" style="width: 100px;margin-right: 5px;" v-model="item.name"/>-->
+                        <!--                                ：-->
+                        <!--                            </div>-->
+                        <!--                            <a-input-number class="input" v-model="item.riseStop"/>-->
+
+                        <!--                            <a-button type="danger" icon="delete" @click="deleteFieldItem(index)"-->
+                        <!--                                      style="margin-left: 10px;">-->
+                        <!--                                删除-->
+                        <!--                            </a-button>-->
+                        <!--                        </div>-->
                     </template>
-                    <a-button type="primary" icon="plus" @click="addFieldItem"
-                              style="display: block;width: fit-content; margin: 0 0 0 auto;">添加字段项
-                    </a-button>
+                    <!--                    <a-button type="primary" icon="plus" @click="addFieldItem"-->
+                    <!--                              style="display: block;width: fit-content; margin: 0 0 0 auto;">添加字段项-->
+                    <!--                    </a-button>-->
 
+
+                </a-form-model>
+            </a-modal>
+
+
+            <a-modal :title="(currentColumnEditItem.id?'编辑':'新建')+'字段'" :visible="showColumnEditDialog" :width="500"
+                     @ok="saveColumnEditItem" @cancel="closeColumnEditDialog">
+                <a-form-model ref="columnForm" :model="currentColumnEditItem" :rules="columnRules"
+                              :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
+                    <a-form-model-item label="字段名称" prop="name" style="margin: 0">
+                        <a-input style="width: 100%;" v-model="currentColumnEditItem.name"/>
+                    </a-form-model-item>
+                    <a-form-model-item label="低极致" prop="minNumber" style="margin: 0">
+                        <a-input-number style="width: 100%;" v-model="currentColumnEditItem.minNumber"/>
+                    </a-form-model-item>
+                    <a-form-model-item label="高极致" prop="maxNumber" style="margin: 0">
+                        <a-input-number style="width: 100%;" v-model="currentColumnEditItem.maxNumber"/>
+                    </a-form-model-item>
+                    <a-form-model-item label="权重" prop="weightNumber" style="margin: 0">
+                        <a-input v-model="currentColumnEditItem.weightNumber"/>
+                    </a-form-model-item>
+
+                    <a-form-model-item label="是否展示图形" prop="isStack" style="margin: 0">
+                        <a-switch :checked="isCheckedColumn(currentColumnEditItem)"
+                                  @change="columnCheckedChange($event, currentColumnEditItem)"/>
+                    </a-form-model-item>
+
+                    <a-form-model-item label="图表类型" prop="gpTime" style="margin: 0">
+                        <a-radio-group v-model="currentColumnEditItem.tbType" button-style="solid">
+                            <a-radio-button value="line">折线图</a-radio-button>
+                            <a-radio-button value="bar">柱状图</a-radio-button>
+                        </a-radio-group>
+                    </a-form-model-item>
+<!--                    <a-form-model-item label="是否堆叠" prop="isStack" style="margin: 0">-->
+<!--                        <a-switch v-model="currentColumnEditItem.tbPlace"/>-->
+<!--                    </a-form-model-item>-->
+<!--                    <a-form-model-item label="图形展示位置" prop="xAxisPosition" style="margin: 0">-->
+<!--                        <a-radio-group v-model="currentColumnEditItem.tbOverlay" button-style="solid">-->
+<!--                            <a-radio-button value="top">上</a-radio-button>-->
+<!--                            <a-radio-button value="bottom">下</a-radio-button>-->
+<!--                        </a-radio-group>-->
+<!--                    </a-form-model-item>-->
 
                 </a-form-model>
             </a-modal>
@@ -118,22 +211,28 @@
 <script>
 // let mapChart = null;
 // 引入基本模板
-import LineCharts from "./components/lineCharts";
+import itemCharts from "./components/itemCharts";
+import MixinCharts from "./components/mixinCharts";
 
 
 export default {
     name: 'App',
-    components: {LineCharts},
+    components: {MixinCharts, itemCharts},
     data() {
         return {
+            /** 基础 */
             baseUrl: "//139.224.41.178:8072/wealth",
             pageIsLoading: true,
             pageLoadingText: "页面加载中",
 
+            /** 表格 */
             metaDataList: [],
+            weightNumberList: [],
+            weightNumberObject: {},
 
 
-            //编辑对话框
+            /** 编辑对话框 */
+            // 数据编辑对话框
             showEditDialog: false,
             currentEditItem: {
                 "summation": "1000",
@@ -143,22 +242,42 @@ export default {
                     {"name": "涨停1", "riseStop": "80"}
                 ]
             },
-            weightNumberList: [],
-            weightNumberObject: {},
             rules: {
                 summation: [{required: true, message: '请输入summation', trigger: 'change'}],
                 sumStandard: [{required: true, message: '请输入sumStandard', trigger: 'change'}],
                 gpTime: [{required: true, message: '请输入gpTime', trigger: 'change'}],
             },
 
+            // 字段配置对话框
+            currentColumnEditItem: {},
+            columnRules: {
+                name: [{required: true, message: '请输入字段名', trigger: 'change'}],
+                minNumber: [{required: true, message: '请输入低极致', trigger: 'change'}],
+                maxNumber: [{required: true, message: '请输入高极致', trigger: 'change'}],
+                weightNumber: [{required: true, message: '请输入权重', trigger: 'change'}],
+            },
+            showColumnEditDialog: false,
+            columnForm: this.$form.createForm(this),
+
+
+            /** 图表组件 */
             timer: false,
             screenWidth: document.body.clientWidth,
             chartBox: null,
 
-            darkMode: false,
-
+            // 取消选中的行和列
             unCheckedData: [],
             uncheckedColumn: [],
+
+
+            /** 其他 */
+            darkMode: false,
+
+
+            currentChartType: "line",
+            isStack: false,
+            xAxisPosition: "bottom",
+
 
         }
     },
@@ -190,19 +309,18 @@ export default {
 
         tableColumnList: function () {
             let list = [];
-            for (let i = 0; i < this.tableDataSource.length; i++) {
-                for (let j = 0; j < this.tableDataSource[i].gpData.length; j++) {
-                    let index = list.findIndex((item) => {
-                        return item === this.tableDataSource[i].gpData[j].name
-                    })
-                    if (index === -1) {
-                        list.push(this.tableDataSource[i].gpData[j].name)
-                    }
+            for (let i = 0; i < this.weightNumberList.length; i++) {
+                let index = list.findIndex((item) => {
+                    return item === this.weightNumberList[i].name
+                })
+                if (index === -1) {
+                    list.push(this.weightNumberList[i].name)
                 }
             }
             return list;
         },
 
+        // 因为图表要筛掉没勾选的列，这里使用计算属性过滤
         tableColumnListFiltered: function () {
             let list = [];
             for (let i = 0; i < this.tableColumnList.length; i++) {
@@ -231,6 +349,9 @@ export default {
                 columnList.push({
                     title: this.tableColumnList[i],
                     dataIndex: "gpDataObject." + this.tableColumnList[i] + ".riseStop",
+                    scopedSlots: {
+                        customRender: "riseStop",
+                    },
                     align: "center"
                 })
             }
@@ -250,6 +371,7 @@ export default {
             return columnList;
         },
 
+        //echarts x值
         allDate: function () {
             let list = [];
             for (let i = 0; i < this.metaDataList.length; i++) {
@@ -260,15 +382,57 @@ export default {
             return list
         },
 
+
+        // 数据总和
+        allDataSeries: function () {
+            let seriesList = [];
+            for (let i = 0; i < this.tableColumnList.length; i++) {
+                // 判断 - 是否在侧边选择展示图形
+                if (this.isCheckedColumn(this.tableColumnList[i])) {
+                    if (this.currentChartType === 'line') {
+                        seriesList.push({
+                            type: 'line',
+                            name: this.tableColumnList[i],
+                            data: this.getDataListByKey(this.tableColumnList[i]),
+                            stack: this.isStack ? "0" : null,
+                            areaStyle: {
+                                opacity: 0.5
+                            }
+                        })
+                    } else {
+                        seriesList.push({
+                            type: 'bar',
+                            name: this.tableColumnList[i],
+                            data: this.getDataListByKey(this.tableColumnList[i]),
+                            itemStyle: this.isStack ? null : {
+                                normal: {
+                                    barBorderRadius: [8, 8, 0, 0],
+                                },
+                                emphasis: {
+                                    barBorderRadius: [8, 8, 0, 0],
+                                }
+                            },
+                            stack: this.isStack ? "0" : null
+                        })
+                    }
+                }
+            }
+
+            return seriesList;
+        },
     },
 
     methods: {
-        // 获取所有数据
+        /**
+         * 获取初始化数据
+         */
+
+        // 获取所有行数据
         getServerData: function () {
             let _this = this;
             let queryParam = {
-                page: 1,
-                size: 99999
+                pageNo: 1,
+                pageSize: 50
             }
             this.pageIsLoading = true;
             this.$axios.get(this.baseUrl + "/apcount/list", {params: queryParam}).then((result) => {
@@ -286,6 +450,28 @@ export default {
             })
         },
 
+        // 获取所有字段
+        getAllColumnData: function () {
+            let _this = this;
+            this.$axios.get(this.baseUrl + "/gpweigh/list", {params: {size: 99999, page: 1}}).then((res) => {
+                if (res.data.success) {
+                    console.log("获取所有字段。", res.data)
+                    _this.weightNumberList = res.data.result.records;
+                    let response = this.getWeightObject(res.data.result.records);
+                    _this.weightNumberObject = response.object;
+                    _this.uncheckedColumn = response.columnUnchecked;
+                } else {
+                    _this.$message.warn("获取所有字段失败。" + res.data.message);
+                }
+            }).catch((err) => {
+                if (err.response) {
+                    _this.$message.error("获取所有字段错误。" + err.response.data.message);
+                } else {
+                    _this.$message.error("获取所有字段错误。" + err.toString())
+                }
+            })
+        },
+
         // 根据 key 获取 value
         getTargetData: function (dataList, key, defaultValue) {
             let text = defaultValue
@@ -293,7 +479,7 @@ export default {
                 return item.name === key
             });
             if (index !== -1) {
-                text = dataList[index].data;
+                text = dataList[index].riseStop;
             }
 
             return text;
@@ -321,6 +507,11 @@ export default {
             return list;
         },
 
+        // 根据字段名获取图表类型
+        getChartsType: function (key){
+            return this.weightNumberObject[key].tbType
+        },
+
         // 数组转对象
         arrayToObject: function (array) {
             let object = {};
@@ -332,38 +523,70 @@ export default {
 
         // 添加一项
         addListItem: function () {
-            this.currentEditItem = {
+            let currentEditItem = {
                 "summation": "1000",
                 "sumStandard": "50",
                 "gpTime": "2021-12-31",
-                "gpData": [
-                    {"name": "涨停1", "riseStop": "80"}
-                ]
+                "gpData": []
             };
+            let tempGPData = [];
+            for(let i=0;i< this.tableColumnList.length;i++){
+                tempGPData.push({
+                    name: this.tableColumnList[i],
+                    riseStop: 0,
+                })
+            }
+            currentEditItem.gpData = tempGPData;
+
+            this.currentEditItem = currentEditItem;
             this.showEditDialog = true;
         },
 
         // 编辑一项
         editItem: function (item) {
             let _item = JSON.parse(JSON.stringify(item));
-            console.log(item);
+            console.log("处理前",_item);
             // _item.metaData.gpData = JSON.parse(_item.metaData.gpData);
+            let gpData = _item.metaData.gpData, tempGPData = [];
+            for(let i=0;i< this.tableColumnList.length;i++){
+                console.log(i);
+                let index = gpData.findIndex((item) => {
+                    console.log(item.name, this.tableColumnList[i])
+                    return item.name === this.tableColumnList[i]
+                });
+                console.log("结果？",index)
+                if(index > -1){
+                    tempGPData.push({
+                        name: gpData[index].name,
+                        riseStop: gpData[index].riseStop,
+                    })
+                }else{
+                    tempGPData.push({
+                        name: this.tableColumnList[i],
+                        riseStop: 0,
+                    })
+                }
+                console.log(index > -1, tempGPData)
+            }
+            _item.metaData.gpData = tempGPData;
+            console.log("处理后",_item);
             this.currentEditItem = _item.metaData;
             this.showEditDialog = true;
         },
 
+
         // 为一项添加列
-        addFieldItem: function () {
-            this.currentEditItem.gpData.push({
-                "riseStop": "80",
-                "name": "新建字段" + (this.currentEditItem.gpData.length + 1)
-            });
-        },
+        // addFieldItem: function () {
+        //     this.currentEditItem.gpData.push({
+        //         "riseStop": "80",
+        //         "name": "新建字段" + (this.currentEditItem.gpData.length + 1)
+        //     });
+        // },
 
         // 删除字段项目
-        deleteFieldItem: function (index) {
-            this.currentEditItem.gpData.splice(index, 1);
-        },
+        // deleteFieldItem: function (index) {
+        //     this.currentEditItem.gpData.splice(index, 1);
+        // },
 
 
         // 保存编辑项目
@@ -387,7 +610,7 @@ export default {
                     this.$message.success("保存成功");
                     _this.closeEditDialog();
                     _this.getServerData();
-                    _this.getAllWeightNumber();
+                    _this.getAllColumnData();
                 } else {
                     this.$message.warn("保存失败。" + res.data.message);
                 }
@@ -404,129 +627,56 @@ export default {
                 "summation": "1000",
                 "sumStandard": "50",
                 "gpTime": "2021-12-31",
-                "gpData": [
-                    {"name": "涨停1", "riseStop": "80"}
-                ]
+                "gpData": []
             };
             this.showEditDialog = false;
         },
 
 
-        // 切换日间、夜间模式
-        changeThemeColor: function () {
-            const domTarget = document.querySelector('#app');
-
-            if (this.darkMode) {
-                domTarget.style.setProperty('--background_color', '#ffffff');
-                domTarget.style.setProperty('--text_color', '#000000');
-            } else {
-                domTarget.style.setProperty('--background_color', '#000000');
-                domTarget.style.setProperty('--text_color', '#59f6fb');
-            }
-
-            this.darkMode = !this.darkMode;
-
-        },
-
         // 检查此字段是否选中
         isCheckedColumn: function (item) {
             let index = this.uncheckedColumn.findIndex((sItem) => {
-                return sItem === item
+                return sItem === item.name
             })
-            return index === -1
+            return (index === -1)
         },
 
         // 此字段选中变化
         columnCheckedChange: function (e, item) {
             console.log(e, item);
             let index = this.uncheckedColumn.findIndex((sItem) => {
-                return sItem === item
+                return sItem === item.name
             })
             if (index > -1) {
                 // 将此字段从unChecked 列表移除
                 this.uncheckedColumn.splice(index, 1);
             } else {
                 // 将字段追加到 unChecked 列表
-                this.uncheckedColumn.push(item);
+                this.uncheckedColumn.push(item.name);
             }
 
         },
 
-        // 获取所有权重值
-        getAllWeightNumber: function () {
-            let _this = this;
-            this.$axios.get(this.baseUrl + "/gpweigh/list", {params: {size: 99999, page: 1}}).then((res) => {
-                if (res.data.success) {
-                    console.log("获取权值。", res.data)
-                    _this.weightNumberList = res.data.result.records;
-                    _this.weightNumberObject = this.getWeightObject(res.data.result.records);
-                } else {
-                    _this.$message.warn("获取权值失败。" + res.data.message);
-                }
-            }).catch((err) => {
-                if (err.response) {
-                    _this.$message.error("获取权值错误。" + err.response.data.message);
-                } else {
-                    _this.$message.error("获取权值错误。" + err.toString())
-                }
-            })
-        },
-
-        // 权重list转object
+        // 字段list转object
         getWeightObject: function (list) {
-            let object = {};
+            let object = {}, columnUnchecked = [];
             for (let i = 0; i < list.length; i++) {
                 object[list[i].name] = {
                     weightNumber: list[i].weightNumber,
                     minNumber: list[i].minNumber,
                     maxNumber: list[i].maxNumber,
                     id: list[i].id,
+                    isShow: list[i].isShow,
+                    name: list[i].name,
+                    tbOverlay: list[i].tbOverlay,
+                    tbPlace: list[i].tbPlace,
+                    tbType: list[i].tbType,
+                }
+                if(list[i].isShow === '1'){
+                    columnUnchecked.push(list[i].name);
                 }
             }
-            return object;
-        },
-
-        // 权重值保存
-        saveWeightNumber: function (columnName) {
-            let _this = this;
-            let weightNumber = this.weightNumberObject[columnName];
-            if (weightNumber == null || weightNumber === "") {
-                weightNumber = 0
-            }
-            // 检查添加还是编辑
-            let index = this.weightNumberList.findIndex((item) => {
-                return item.name === columnName
-            });
-            let queryUrl, queryParam, queryMethod;
-            queryParam = {
-                name: columnName,
-                weightNumber: weightNumber
-            }
-            if (index > -1) {
-                // 编辑
-                queryUrl = this.baseUrl + "/gpweigh/edit";
-                queryMethod = "PUT";
-                queryParam.id = this.weightNumberList[index].id;
-            } else {
-                // 添加
-                queryUrl = this.baseUrl + "/gpweigh/add";
-                queryMethod = "POST";
-            }
-            this.$axios({url: queryUrl, data: queryParam, method: queryMethod}).then((res) => {
-                if (res.data.success) {
-                    console.log("保存权值。", res.data)
-                    _this.getAllWeightNumber();
-                    _this.getServerData();
-                } else {
-                    _this.$message.warn("保存权值失败。" + res.data.message);
-                }
-            }).catch((err) => {
-                if (err.response) {
-                    _this.$message.error("保存权值错误。" + err.response.data.message);
-                } else {
-                    _this.$message.error("保存权值错误。" + err.toString())
-                }
-            })
+            return {object, columnUnchecked};
         },
 
         // 保存全部列配置
@@ -534,7 +684,7 @@ export default {
             let _this = this;
             // 拼接请求数据（object转数组）
             let array = [];
-            for(let i in this.weightNumberObject){
+            for (let i in this.weightNumberObject) {
                 array.push({
                     id: this.weightNumberObject[i].id,
                     weightNumber: this.weightNumberObject[i].weightNumber,
@@ -546,18 +696,18 @@ export default {
             this.pageIsLoading = true;
             this.$axios.put(this.baseUrl + "/gpweigh/editBatch", array).then((res) => {
                 _this.pageIsLoading = false;
-                if(res.data.success){
+                if (res.data.success) {
                     _this.$message.success("保存成功");
-                    _this.getAllWeightNumber();
-                }else{
-                    _this.$message.warn("保存失败。"+res.message);
+                    _this.getAllColumnData();
+                } else {
+                    _this.$message.warn("保存失败。" + res.message);
                 }
             }).catch((err) => {
                 _this.pageIsLoading = false;
-                if(err.response){
-                    _this.$message.error("保存错误。"+err.response.data.message)
-                }else{
-                    _this.$message.error("保存错误。"+err.toString())
+                if (err.response) {
+                    _this.$message.error("保存错误。" + err.response.data.message)
+                } else {
+                    _this.$message.error("保存错误。" + err.toString())
                 }
             })
         },
@@ -596,7 +746,7 @@ export default {
                 if (res.data.success) {
                     _this.$message.success("删除成功");
                     _this.getServerData();
-                    _this.getAllWeightNumber();
+                    _this.getAllColumnData();
                 } else {
                     _this.$message.warn("删除失败。" + res.data.message);
                 }
@@ -604,10 +754,92 @@ export default {
                 _this.$message.error("删除错误" + err.toString());
             })
         },
+
+
+        /**
+         * 字段管理相关
+         */
+
+        // 编辑字段
+        editColumnItem: function (record) {
+            this.currentColumnEditItem = JSON.parse(JSON.stringify(record));
+            this.showColumnEditDialog = true;
+        },
+
+        // 保存字段配置
+        saveColumnEditItem: function () {
+            let _this = this;
+            this.$refs.columnForm.validate((success, object) => {
+                console.log(success, object);
+                if(success){
+                    let queryUrl, queryParam, queryMethod;
+                    queryParam = JSON.parse(JSON.stringify(this.currentColumnEditItem));
+                    if(queryParam.id){
+                        queryParam.isShow = this.isCheckedColumn(queryParam)?0:1;
+                    }
+                    // 检查添加还是编辑
+                    if (queryParam.id) {
+                        // 编辑
+                        queryUrl = this.baseUrl + "/gpweigh/edit";
+                        queryMethod = "PUT";
+                    } else {
+                        // 添加
+                        queryUrl = this.baseUrl + "/gpweigh/add";
+                        queryMethod = "POST";
+                    }
+                    this.$axios({url: queryUrl, data: queryParam, method: queryMethod}).then((res) => {
+                        if (res.data.success) {
+                            console.log("保存字段配置。", res.data)
+                            _this.$message.success("保存成功");
+                            _this.closeColumnEditDialog();
+                            _this.getAllColumnData();
+                            _this.getServerData();
+                        } else {
+                            _this.$message.warn("保存字段配置失败。" + res.data.message);
+                        }
+                    }).catch((err) => {
+                        if (err.response) {
+                            _this.$message.error("保存字段配置错误。" + err.response.data.message);
+                        } else {
+                            _this.$message.error("保存字段配置错误。" + err.toString())
+                        }
+                    })
+                }
+            })
+
+        },
+
+        // 删除字段
+        deleteColumnItem: function (item) {
+            let _this = this;
+            this.$axios.delete(this.baseUrl + "/gpweigh/delete", {params: {id: item.id}}).then((res) => {
+                if (res.data.success) {
+                    _this.$message.success("删除成功");
+                    _this.getAllColumnData();
+                    _this.getServerData();
+                } else {
+                    _this.$message.warn("删除失败。" + res.data.message);
+                }
+            }).catch((err) => {
+                if (err.response) {
+                    _this.$message.error("删除错误。" + err.response.data.message);
+                } else {
+                    _this.$message.error("删除失败。" + err.toString());
+                }
+            })
+        },
+
+        // 关闭字段配置对话框
+        closeColumnEditDialog: function () {
+            this.currentColumnEditItem = {};
+            // this.columnForm.resetFields();
+            this.showColumnEditDialog = false;
+        },
+
     },
 
     created: function () {
-        this.getAllWeightNumber();
+        this.getAllColumnData();
         this.getServerData()
     },
 }
@@ -737,7 +969,7 @@ html, body, #app {
     transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
 
     .left_input_box {
-        width: 300px;
+        width: 400px;
         border-right: 2px solid #d9d9d9;
         display: flex;
         flex-flow: column;
@@ -782,7 +1014,8 @@ html, body, #app {
 
             .charts_item {
                 width: 100%;
-                height: 300px;
+                height: 500px;
+
             }
         }
     }
@@ -816,6 +1049,31 @@ html, body, #app {
             border: 1px solid #d9d9d9;
             margin: 10px 0 10px 0;
             padding: 20px;
+        }
+    }
+}
+
+.form_box {
+    //margin: 0px 0;
+
+    .item {
+        display: flex;
+        align-items: center;
+        margin: 10px 0;
+
+        .label {
+            width: 110px;
+            text-align: right;
+
+            &:after {
+                content: ":";
+                margin: 0 10px 0 5px;
+            }
+        }
+
+        .input {
+            width: calc(100% - 110px);
+            flex: auto;
         }
     }
 }
