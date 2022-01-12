@@ -110,12 +110,12 @@
                     <item-charts class="charts_item" title="情绪温度" index="dataSum"
                                  :x-data="allDate" :y-data="getDataListByKey('dataSum')"/>
                     <template v-for="(item, index) in tableColumnListFiltered">
-                        {{getChartsType(item)}}
+<!--                        {{getChartsType(item)}}-->
                         <item-charts :key="index" :index="index" class="charts_item" :title="item"
                                      :type="getChartsType(item)"
                                      :x-data="allDate" :y-data="getDataListByKey(item)"/>
                     </template>
-                    <mixin-charts class="charts_item" title="总合数据图" index="dataAll" :type="currentChartType"
+                    <mixin-charts class="charts_item" style="height: 500px;" title="总合数据图" index="dataAll" :type="currentChartType"
                                   :xAxisPosition="xAxisPosition" :x-data="allDate" :series="allDataSeries"/>
 
                 </div>
@@ -275,6 +275,7 @@ export default {
 
 
             currentChartType: "line",
+            currentCherTypeList:[],
             isStack: false,
             xAxisPosition: "bottom",
 
@@ -319,6 +320,16 @@ export default {
             }
             return list;
         },
+      tableCheatrsList: function () {
+        let list = [];
+        for (let i = 0; i < this.weightNumberList.length; i++) {
+            list.push({
+                tbType:this.weightNumberList[i].tbType,
+                name:this.weightNumberList[i].name})
+
+        }
+        return list;
+      },
 
         // 因为图表要筛掉没勾选的列，这里使用计算属性过滤
         tableColumnListFiltered: function () {
@@ -386,24 +397,25 @@ export default {
         // 数据总和
         allDataSeries: function () {
             let seriesList = [];
-            for (let i = 0; i < this.tableColumnList.length; i++) {
+            for (let i = 0; i < this.tableCheatrsList.length; i++) {
                 // 判断 - 是否在侧边选择展示图形
-                if (this.isCheckedColumn(this.tableColumnList[i])) {
-                    if (this.currentChartType === 'line') {
+                if (this.isCheckedColumn(this.tableCheatrsList[i].name)) {
+                    // if (this.currentChartType === 'line') {
+                    if (this.tableCheatrsList[i].tbType === 'line') {
                         seriesList.push({
                             type: 'line',
-                            name: this.tableColumnList[i],
-                            data: this.getDataListByKey(this.tableColumnList[i]),
+                            name: this.tableCheatrsList[i].name,
+                            data: this.getDataListByKey(this.tableCheatrsList[i].name),
                             stack: this.isStack ? "0" : null,
-                            areaStyle: {
+                            areaStyle: this.isStack ? {
                                 opacity: 0.5
-                            }
+                            } : null
                         })
                     } else {
                         seriesList.push({
                             type: 'bar',
-                            name: this.tableColumnList[i],
-                            data: this.getDataListByKey(this.tableColumnList[i]),
+                            name: this.tableCheatrsList[i].name,
+                            data: this.getDataListByKey(this.tableCheatrsList[i].name),
                             itemStyle: this.isStack ? null : {
                                 normal: {
                                     barBorderRadius: [8, 8, 0, 0],
@@ -506,6 +518,21 @@ export default {
 
             return list;
         },
+      // 根据 所有图表type属性 获取所有的值
+      getChartsByKey: function (key) {
+        let list = [];
+        if (key === 'tbType') {
+          for (let i = 0; i < this.tableColumnList.length; i++) {
+            list.push(this.tableColumnList[i].tbType);
+          }
+        } else if (key === 'tbOverlay') {
+          for (let i = 0; i < this.tableColumnList.length; i++) {
+            list.push(this.tableColumnList[i].tbOverlay);
+          }
+        }
+
+        return list;
+      },
 
         // 根据字段名获取图表类型
         getChartsType: function (key){
@@ -1014,7 +1041,7 @@ html, body, #app {
 
             .charts_item {
                 width: 100%;
-                height: 500px;
+                height: 200px;
 
             }
         }
