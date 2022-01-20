@@ -53,6 +53,27 @@
                           style="margin-top: 10px;">保存字段配置
                 </a-button>
 
+
+                <div style="font-size: 12pt;margin: 40px 0 0 0;font-weight: bold;">总和设置</div>
+                <a-form-model ref="ruleForm" :model="countDataFormData" :rules="rules"
+                              :label-col="{ span: 7 }" :wrapper-col="{ span: 12 }">
+                    <div class="form_box">
+
+                        <a-form-model-item label="指数起步值" style="margin: 0">
+                            <a-input-number style="width: 100%;" v-model="countDataFormData.countData"/>
+                        </a-form-model-item>
+
+
+                        <a-form-model-item label="冷暖研判指标" style="margin: 0">
+                            <a-input-number style="width: 100%;" v-model="countDataFormData.standard"/>
+                        </a-form-model-item>
+
+                        <a-button type="primary" icon="save" @click="saveCountConfig"
+                                  style="margin-top: 10px;width: 100%;">保存指标
+                        </a-button>
+                    </div>
+                </a-form-model>
+
                 <div style="font-size: 12pt;margin: 40px 0 0 0;font-weight: bold;">总和图表设置</div>
                 <div class="form_box">
                     <div class="item">
@@ -77,17 +98,21 @@
             </div>
             <div class="right_display_box">
                 <div class="table_box">
-                    <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataSource" bordered
-                             :pagination="false">
+                    <a-button class="addbutton" style="display: block; margin: 10px auto;" @click="addListItem"
+                              type="primary" icon="plus">添加
+                    </a-button>
+
+                    <a-table size="middle" :columns="chartsColumns" rowKey="id" :dataSource="tableDataAsc" bordered
+                             :pagination="false" :sortDirections="['descend', 'ascend']" :scroll="{ x: 3500, y: 280 }">
                         <template slot="riseStop" slot-scope="text">
-                            {{ text==null||text===''?0:text }}
+                            <a-tooltip>
+                                <template slot="title">
+                                    {{ text.data == null || text.data === '' ? 0 : text.data }}
+                                </template>
+                                {{ text.riseStop == null || text.riseStop === '' ? 0 : text.riseStop }}
+                            </a-tooltip>
                         </template>
-                        <template slot="time" slot-scope="text, record">
-                            <a-checkbox :checked="isCheckedDataSource(record)"
-                                        @change="dataSourceCheckedChange($event, record)"
-                                        title="是否在ECharts中显示行数据"/>
-                            {{ text }}
-                        </template>
+
                         <template slot="action" slot-scope="text, records, index">
                             <a @click="editItem(records)">
                                 <a-icon type="form"/>
@@ -100,66 +125,43 @@
                             </a-popconfirm>
                         </template>
                     </a-table>
-                    <a-button style="display: block; margin: 20px auto;" @click="addListItem"
-                              type="primary" icon="plus">添加
-                    </a-button>
+
                 </div>
                 <div class="chart_box" id="chartBox">
-                    <item-charts class="charts_item" title="情绪指数" index="endSum"
+                    <item-charts class="charts_item_qx" title="情绪指数" index="endSum"
                                  :x-data="allDate" :y-data="getDataListByKey('endSum')"/>
                     <item-charts class="charts_item" title="情绪温度" index="dataSum"
                                  :x-data="allDate" :y-data="getDataListByKey('dataSum')"/>
                     <template v-for="(item, index) in tableColumnListFiltered">
-                        {{getChartsType(item)}}
+                        <!--                        {{getChartsType(item)}}-->
                         <item-charts :key="index" :index="index" class="charts_item" :title="item"
                                      :type="getChartsType(item)"
                                      :x-data="allDate" :y-data="getDataListByKey(item)"/>
                     </template>
-                    <mixin-charts class="charts_item" title="总合数据图" index="dataAll" :type="currentChartType"
+                    <mixin-charts class="charts_item" style="height: 500px;" title="总合数据图" index="dataAll"
+                                  :type="currentChartType"
                                   :xAxisPosition="xAxisPosition" :x-data="allDate" :series="allDataSeries"/>
 
                 </div>
             </div>
 
             <a-modal :title="(currentEditItem.id?'编辑':'新建')+'行数据'" :visible="showEditDialog" :width="800"
-                     @ok="saveEditItem" @cancel="closeEditDialog">
-                <a-form-model ref="ruleForm" :model="currentEditItem" :rules="rules"
-                              :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
-                    <a-form-model-item label="总和" prop="summation" style="margin: 0">
-                        <a-input-number style="width: 100%;" v-model="currentEditItem.summation"/>
-                    </a-form-model-item>
-                    <a-form-model-item label="总和标准" prop="sumStandard" style="margin: 0">
-                        <a-input-number style="width: 100%;" v-model="currentEditItem.sumStandard"/>
-                    </a-form-model-item>
-                    <a-form-model-item label="时间" prop="gpTime" style="margin: 0">
-                        <a-input v-model="currentEditItem.gpTime"/>
-                    </a-form-model-item>
-
-                    <template v-for="(item, index) in currentEditItem.gpData">
-
-                        <a-form-model-item :key="index" :label="item.name" style="margin: 0">
-                            <a-input v-model="item.riseStop" placeholder="0"/>
+                     @ok="saveEditItem" @cancel="closeEditDialog" :confirm-loading="saveLoading">
+                <a-spin :spinning="saveLoading">
+                    <a-form-model ref="ruleForm" :model="currentEditItem" :rules="rules"
+                                  :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
+                        <a-form-model-item label="时间" prop="gpTime" style="margin: 0">
+                            <a-input v-model="currentEditItem.gpTime"/>
                         </a-form-model-item>
 
-                        <!--                        <div class="form_item_box" :key="index">-->
-                        <!--                            <div class="label">-->
-                        <!--                                <a-input placeholder="字段名" style="width: 100px;margin-right: 5px;" v-model="item.name"/>-->
-                        <!--                                ：-->
-                        <!--                            </div>-->
-                        <!--                            <a-input-number class="input" v-model="item.riseStop"/>-->
+                        <template v-for="(item, index) in currentEditItem.gpData">
+                            <a-form-model-item :key="index" :label="item.name" style="margin: 0">
+                                <a-input v-model="item.riseStop" placeholder="0"/>
+                            </a-form-model-item>
+                        </template>
 
-                        <!--                            <a-button type="danger" icon="delete" @click="deleteFieldItem(index)"-->
-                        <!--                                      style="margin-left: 10px;">-->
-                        <!--                                删除-->
-                        <!--                            </a-button>-->
-                        <!--                        </div>-->
-                    </template>
-                    <!--                    <a-button type="primary" icon="plus" @click="addFieldItem"-->
-                    <!--                              style="display: block;width: fit-content; margin: 0 0 0 auto;">添加字段项-->
-                    <!--                    </a-button>-->
-
-
-                </a-form-model>
+                    </a-form-model>
+                </a-spin>
             </a-modal>
 
 
@@ -191,15 +193,6 @@
                             <a-radio-button value="bar">柱状图</a-radio-button>
                         </a-radio-group>
                     </a-form-model-item>
-<!--                    <a-form-model-item label="是否堆叠" prop="isStack" style="margin: 0">-->
-<!--                        <a-switch v-model="currentColumnEditItem.tbPlace"/>-->
-<!--                    </a-form-model-item>-->
-<!--                    <a-form-model-item label="图形展示位置" prop="xAxisPosition" style="margin: 0">-->
-<!--                        <a-radio-group v-model="currentColumnEditItem.tbOverlay" button-style="solid">-->
-<!--                            <a-radio-button value="top">上</a-radio-button>-->
-<!--                            <a-radio-button value="bottom">下</a-radio-button>-->
-<!--                        </a-radio-group>-->
-<!--                    </a-form-model-item>-->
 
                 </a-form-model>
             </a-modal>
@@ -222,6 +215,7 @@ export default {
         return {
             /** 基础 */
             baseUrl: "//139.224.41.178:8072/wealth",
+            // baseUrl: "//127.0.0.1:8072/wealth",
             pageIsLoading: true,
             pageLoadingText: "页面加载中",
 
@@ -229,17 +223,28 @@ export default {
             metaDataList: [],
             weightNumberList: [],
             weightNumberObject: {},
+            weightNumbersss: [1, 2, 1, 2, 12, 1, 2, 11, 2, 3, 2, 32, 32, 32, 32, 323, 2],
 
+
+            //获取总合数据
+            countDataFormData: {
+                countData: "",
+                standard: ""
+            },
+
+            //获取当前时间
+            upgpTime: "",
 
             /** 编辑对话框 */
             // 数据编辑对话框
+            saveLoading: false,
             showEditDialog: false,
             currentEditItem: {
                 "summation": "1000",
                 "sumStandard": "50",
-                "gpTime": "2021-12-31",
+                "gpTime": "",
                 "gpData": [
-                    {"name": "涨停1", "riseStop": "80"}
+                    {"name": "涨停1", "riseStop": "80", "id": ""}
                 ]
             },
             rules: {
@@ -275,6 +280,7 @@ export default {
 
 
             currentChartType: "line",
+            currentCherTypeList: [],
             isStack: false,
             xAxisPosition: "bottom",
 
@@ -284,9 +290,11 @@ export default {
 
     computed: {
 
+        // 表格数据
         tableDataSource: function () {
             let list = [], itemObject = {};
             for (let i = 0; i < this.metaDataList.length; i++) {
+                // for (let i = this.metaDataList.length-1; i>=0; i--) {
                 let item = {};
                 try {
                     item = this.metaDataList[i].gpData;
@@ -307,6 +315,40 @@ export default {
             return list
         },
 
+        // 这是啥？也是表格数据？
+        tableDataAsc: function () {
+            let list = [], itemObject = {};
+
+            // for (let i = 0; i < this.metaDataList.length; i++) {
+            for (let i = this.metaDataList.length - 1; i >= 0; i--) {
+                let dataOnes = [];
+                let item = {};
+                try {
+                    item = this.metaDataList[i].gpData;
+                    // for(let a=0;a<=this.metaDataList[i].gpData.length;a++){
+                    //
+                    //   let datase= this.metaDataList[i].gpData[a].data;
+                    //   dataOnes.push(datase)
+                    // }
+                    itemObject = this.arrayToObject(item)
+                } catch (err) {
+                    console.error(err);
+                }
+                list.push({
+                    id: this.metaDataList[i].id,
+                    gpTime: this.metaDataList[i].gpTime,
+                    endSum: this.metaDataList[i].endSum,
+                    dataSum: this.metaDataList[i].dataSum,
+                    gpDataObject: itemObject,
+                    gpData: item,
+                    datas: dataOnes,
+                    metaData: this.metaDataList[i]
+                });
+            }
+            return list
+        },
+
+        // 列元数据转数组
         tableColumnList: function () {
             let list = [];
             for (let i = 0; i < this.weightNumberList.length; i++) {
@@ -316,6 +358,19 @@ export default {
                 if (index === -1) {
                     list.push(this.weightNumberList[i].name)
                 }
+            }
+            return list;
+        },
+
+        // 这又是啥？为什么单词是错的？
+        tableCheatrsList: function () {
+            let list = [];
+            for (let i = 0; i < this.weightNumberList.length; i++) {
+                list.push({
+                    tbType: this.weightNumberList[i].tbType,
+                    name: this.weightNumberList[i].name
+                })
+
             }
             return list;
         },
@@ -334,6 +389,7 @@ export default {
             return list;
         },
 
+        // 图表字段？这内容看起来像表格字段
         chartsColumns: function () {
             let columnList = [];
             columnList.push({
@@ -341,14 +397,17 @@ export default {
                 dataIndex: "gpTime",
                 width: 120,
                 align: "center",
+                fixed: 'left',
                 scopedSlots: {
                     customRender: "time",
                 }
             })
-            for (let i = 0; i < this.tableColumnList.length; i++) {
+            // 遍历字段元数据，拼接 gpData 内的字段
+            for (let i = 0; i < this.weightNumberList.length; i++) {
                 columnList.push({
-                    title: this.tableColumnList[i],
-                    dataIndex: "gpDataObject." + this.tableColumnList[i] + ".riseStop",
+                    title: this.weightNumberList[i].name,
+                    dataIndex: "gpDataObject." + this.weightNumberList[i].id,
+                    // dataIndex: "gpDataObject." + this.tableColumnList[i] + ".data",
                     scopedSlots: {
                         customRender: "riseStop",
                     },
@@ -361,9 +420,15 @@ export default {
                 align: "center"
             })
             columnList.push({
+                title: "计算后总和",
+                dataIndex: "dataSum",
+                align: "center"
+            })
+            columnList.push({
                 title: "操作",
                 width: 150,
                 align: "center",
+                fixed: 'right',
                 scopedSlots: {
                     customRender: "action",
                 }
@@ -386,24 +451,25 @@ export default {
         // 数据总和
         allDataSeries: function () {
             let seriesList = [];
-            for (let i = 0; i < this.tableColumnList.length; i++) {
+            for (let i = 0; i < this.tableCheatrsList.length; i++) {
                 // 判断 - 是否在侧边选择展示图形
-                if (this.isCheckedColumn(this.tableColumnList[i])) {
-                    if (this.currentChartType === 'line') {
+                if (this.isCheckedColumn(this.tableCheatrsList[i].name)) {
+                    // if (this.currentChartType === 'line') {
+                    if (this.tableCheatrsList[i].tbType === 'line') {
                         seriesList.push({
                             type: 'line',
-                            name: this.tableColumnList[i],
-                            data: this.getDataListByKey(this.tableColumnList[i]),
-                            stack: this.isStack ? "0" : null,
-                            areaStyle: {
-                                opacity: 0.5
-                            }
+                            name: this.tableCheatrsList[i].name,
+                            data: this.getDataListByKey(this.tableCheatrsList[i].name),
+                            stack: this.isStack ? "0" : null
+                            // areaStyle: this.isStack ? {
+                            //     opacity: 0
+                            // } : null
                         })
                     } else {
                         seriesList.push({
                             type: 'bar',
-                            name: this.tableColumnList[i],
-                            data: this.getDataListByKey(this.tableColumnList[i]),
+                            name: this.tableCheatrsList[i].name,
+                            data: this.getDataListByKey(this.tableCheatrsList[i].name),
                             itemStyle: this.isStack ? null : {
                                 normal: {
                                     barBorderRadius: [8, 8, 0, 0],
@@ -423,6 +489,24 @@ export default {
     },
 
     methods: {
+
+        /**
+         * 获取当前时间
+         * */
+        addDate() {
+            const nowDate = new Date();
+            const date = {
+                year: nowDate.getFullYear(),
+                month: nowDate.getMonth() + 1,
+                date: nowDate.getDate(),
+            }
+            const newmonth = date.month > 10 ? date.month : '0' + date.month
+            const day = date.date > 10 ? date.date : '0' + date.date
+            this.upgpTime = date.year + '-' + newmonth + '-' + day
+
+        },
+
+
         /**
          * 获取初始化数据
          */
@@ -450,12 +534,41 @@ export default {
             })
         },
 
+        // 获取总合数据
+        getCountData: function () {
+            let _this = this;
+            let queryParam = {
+                pageNo: 1,
+                pageSize: 50
+            }
+            this.pageIsLoading = true;
+            this.$axios.get(this.baseUrl + "/apcount/listCount", {params: queryParam}).then((result) => {
+                _this.pageIsLoading = false;
+                let res = result.data
+                if (res.success) {
+                    _this.countDataFormData = res.result.records[0];
+                } else {
+                    _this.countDataFormData = {
+                        countData: "",
+                        standard: ""
+                    };
+
+                }
+            }).catch((err) => {
+                _this.pageIsLoading = false;
+                _this.countDataFormData = {
+                    countData: "",
+                    standard: ""
+                };
+                console.log(err);
+            })
+        },
+
         // 获取所有字段
         getAllColumnData: function () {
             let _this = this;
             this.$axios.get(this.baseUrl + "/gpweigh/list", {params: {size: 99999, page: 1}}).then((res) => {
                 if (res.data.success) {
-                    console.log("获取所有字段。", res.data)
                     _this.weightNumberList = res.data.result.records;
                     let response = this.getWeightObject(res.data.result.records);
                     _this.weightNumberObject = response.object;
@@ -507,8 +620,24 @@ export default {
             return list;
         },
 
+        // 根据 所有图表type属性 获取所有的值
+        getChartsByKey: function (key) {
+            let list = [];
+            if (key === 'tbType') {
+                for (let i = 0; i < this.tableColumnList.length; i++) {
+                    list.push(this.tableColumnList[i].tbType);
+                }
+            } else if (key === 'tbOverlay') {
+                for (let i = 0; i < this.tableColumnList.length; i++) {
+                    list.push(this.tableColumnList[i].tbOverlay);
+                }
+            }
+
+            return list;
+        },
+
         // 根据字段名获取图表类型
-        getChartsType: function (key){
+        getChartsType: function (key) {
             return this.weightNumberObject[key].tbType
         },
 
@@ -516,7 +645,7 @@ export default {
         arrayToObject: function (array) {
             let object = {};
             for (let i = 0; i < array.length; i++) {
-                object[array[i].name] = array[i]
+                object[array[i].id] = array[i]
             }
             return object;
         },
@@ -526,13 +655,15 @@ export default {
             let currentEditItem = {
                 "summation": "1000",
                 "sumStandard": "50",
-                "gpTime": "2021-12-31",
+                "gpTime": this.upgpTime,
                 "gpData": []
             };
+            // 初始化 gpData 。初始化时，直接复用字段表数据生成一个全是 0 的数组
             let tempGPData = [];
-            for(let i=0;i< this.tableColumnList.length;i++){
+            for (let i = 0; i < this.weightNumberList.length; i++) {
                 tempGPData.push({
-                    name: this.tableColumnList[i],
+                    name: this.weightNumberList[i].name,
+                    id: this.weightNumberList[i].id,
                     riseStop: 0,
                 })
             }
@@ -545,55 +676,35 @@ export default {
         // 编辑一项
         editItem: function (item) {
             let _item = JSON.parse(JSON.stringify(item));
-            console.log("处理前",_item);
-            // _item.metaData.gpData = JSON.parse(_item.metaData.gpData);
-            let gpData = _item.metaData.gpData, tempGPData = [];
-            for(let i=0;i< this.tableColumnList.length;i++){
-                console.log(i);
+            console.log("处理前", _item);
+            // 处理 gpData。有两种情况，一种是gpData为空，另一种是之前存在gpData。
+            // 为空的话跟添加一样直接初始化，不为空的话就重写为干净的数组。
+            let gpData = _item.metaData.gpData,
+                tempGPData = [];
+            // 遍历字段表元数据
+            for (let i = 0; i < this.weightNumberList.length; i++) {
+                // 根据 ID 找出gpData中是否存在此字段对应的值，存在就取出来，不存在就默认 0
                 let index = gpData.findIndex((item) => {
-                    console.log(item.name, this.tableColumnList[i])
-                    return item.name === this.tableColumnList[i]
+                    return item.id === this.weightNumberList[i].id
                 });
-                console.log("结果？",index)
-                if(index > -1){
-                    tempGPData.push({
-                        name: gpData[index].name,
-                        riseStop: gpData[index].riseStop,
-                    })
-                }else{
-                    tempGPData.push({
-                        name: this.tableColumnList[i],
-                        riseStop: 0,
-                    })
-                }
-                console.log(index > -1, tempGPData)
+                tempGPData.push({
+                    name: this.weightNumberList[i].name,
+                    id: this.weightNumberList[i].id,
+                    riseStop: index > -1?gpData[index].riseStop:0,
+                })
             }
             _item.metaData.gpData = tempGPData;
-            console.log("处理后",_item);
+            console.log("处理后", _item);
             this.currentEditItem = _item.metaData;
             this.showEditDialog = true;
         },
-
-
-        // 为一项添加列
-        // addFieldItem: function () {
-        //     this.currentEditItem.gpData.push({
-        //         "riseStop": "80",
-        //         "name": "新建字段" + (this.currentEditItem.gpData.length + 1)
-        //     });
-        // },
-
-        // 删除字段项目
-        // deleteFieldItem: function (index) {
-        //     this.currentEditItem.gpData.splice(index, 1);
-        // },
-
 
         // 保存编辑项目
         saveEditItem: function () {
             let _this = this;
             let queryParam = JSON.parse(JSON.stringify(this.currentEditItem)), queryMethod, queryUrl;
             queryParam.gpData = JSON.stringify(queryParam.gpData);
+            console.log(queryParam);
             if (queryParam.id) {
                 queryUrl = "/apcount/edit";
                 queryMethod = "PUT";
@@ -601,10 +712,10 @@ export default {
                 queryUrl = "/apcount/add";
                 queryMethod = "POST";
             }
-            //调用接口保存
-            this.pageIsLoading = true;
+            // 调用接口保存
+            this.saveLoading = true;
             this.$axios({url: this.baseUrl + queryUrl, data: queryParam, method: queryMethod}).then((res) => {
-                _this.pageIsLoading = false;
+                _this.saveLoading = false;
                 console.log(res);
                 if (res.data.success) {
                     this.$message.success("保存成功");
@@ -672,7 +783,7 @@ export default {
                     tbPlace: list[i].tbPlace,
                     tbType: list[i].tbType,
                 }
-                if(list[i].isShow === '1'){
+                if (list[i].isShow === '1') {
                     columnUnchecked.push(list[i].name);
                 }
             }
@@ -699,6 +810,32 @@ export default {
                 if (res.data.success) {
                     _this.$message.success("保存成功");
                     _this.getAllColumnData();
+                    location.reload()
+                    _this.$router.go(0)
+                } else {
+                    _this.$message.warn("保存失败。" + res.message);
+                }
+            }).catch((err) => {
+                _this.pageIsLoading = false;
+                if (err.response) {
+                    _this.$message.error("保存错误。" + err.response.data.message)
+                } else {
+                    _this.$message.error("保存错误。" + err.toString())
+                }
+            })
+        },
+        // 保存总合数据
+        saveCountConfig: function () {
+            let _this = this;
+            console.log(_this.countDataFormData);
+            this.pageIsLoading = true;
+            this.$axios.put(this.baseUrl + "/apcount/editCount", _this.countDataFormData).then((res) => {
+                _this.pageIsLoading = false;
+                if (res.data.success) {
+                    _this.$message.success("保存成功");
+                    _this.getCountData();
+                    location.reload();
+                    _this.$router.go(0);
                 } else {
                     _this.$message.warn("保存失败。" + res.message);
                 }
@@ -714,7 +851,7 @@ export default {
 
         // 此行数据是否选中
         isCheckedDataSource: function (item) {
-            console.log(item);
+            // console.log(item);
             let index = this.unCheckedData.findIndex((sItem) => {
                 return sItem === item.id
             })
@@ -723,7 +860,7 @@ export default {
 
         // 此行数据选中变化
         dataSourceCheckedChange: function (e, item) {
-            console.log(item);
+            // console.log(item);
             item = JSON.parse(JSON.stringify(item));
             item = item.metaData;
             let index = this.unCheckedData.findIndex((sItem) => {
@@ -771,11 +908,11 @@ export default {
             let _this = this;
             this.$refs.columnForm.validate((success, object) => {
                 console.log(success, object);
-                if(success){
+                if (success) {
                     let queryUrl, queryParam, queryMethod;
                     queryParam = JSON.parse(JSON.stringify(this.currentColumnEditItem));
-                    if(queryParam.id){
-                        queryParam.isShow = this.isCheckedColumn(queryParam)?0:1;
+                    if (queryParam.id) {
+                        queryParam.isShow = this.isCheckedColumn(queryParam) ? 0 : 1;
                     }
                     // 检查添加还是编辑
                     if (queryParam.id) {
@@ -840,7 +977,9 @@ export default {
 
     created: function () {
         this.getAllColumnData();
-        this.getServerData()
+        this.getServerData();
+        this.getCountData();
+        this.addDate();
     },
 }
 </script>
@@ -851,116 +990,18 @@ html, body, #app {
     margin: 0;
 }
 
-.page_loader_box {
-    width: 100%;
-    height: 100vh;
-    position: fixed;
-    z-index: 99;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .page_loader {
-        width: 250px;
-        height: 200px;
-        background: rgba(255, 255, 255, 0.5);
-        position: relative;
-        display: flex;
-        flex-flow: column;
-        align-items: center;
-        justify-content: center;
-        border-radius: 20px;
-
-        .text {
-            margin-top: 50px;
-            color: #ffffff;
-        }
-    }
+.addbutton {
+    height: 30px;
 }
 
-
-.line-spin-fade-loader {
-    position: relative;
-    margin-top: 20px;
-    margin-left: -10px;
-
-    > div {
-        border-radius: 2px;
-        margin: 2px;
-        background-color: #fff;
-        -webkit-animation-fill-mode: both;
-        animation-fill-mode: both;
-        position: absolute;
-        width: 5px;
-        height: 15px;
-
-        &:nth-child(1) {
-            top: 20px;
-            left: 0;
-            animation: line-spin-fade-loader 1.2s -.84s infinite ease-in-out
-        }
-
-        &:nth-child(2) {
-            top: 13.64px;
-            left: 13.64px;
-            -webkit-transform: rotate(-45deg);
-            transform: rotate(-45deg);
-            animation: line-spin-fade-loader 1.2s -.72s infinite ease-in-out
-        }
-
-        &:nth-child(3) {
-            top: 0;
-            left: 20px;
-            -webkit-transform: rotate(90deg);
-            transform: rotate(90deg);
-            animation: line-spin-fade-loader 1.2s -.6s infinite ease-in-out
-        }
-
-        &:nth-child(4) {
-            top: -13.64px;
-            left: 13.64px;
-            -webkit-transform: rotate(45deg);
-            transform: rotate(45deg);
-            animation: line-spin-fade-loader 1.2s -.48s infinite ease-in-out
-        }
-
-        &:nth-child(5) {
-            top: -20px;
-            left: 0;
-            animation: line-spin-fade-loader 1.2s -.36s infinite ease-in-out
-        }
-
-        &:nth-child(6) {
-            top: -13.64px;
-            left: -13.64px;
-            -webkit-transform: rotate(-45deg);
-            transform: rotate(-45deg);
-            animation: line-spin-fade-loader 1.2s -.24s infinite ease-in-out
-        }
-
-        &:nth-child(7) {
-            top: 0;
-            left: -20px;
-            -webkit-transform: rotate(90deg);
-            transform: rotate(90deg);
-            animation: line-spin-fade-loader 1.2s -.12s infinite ease-in-out
-        }
-
-        &:nth-child(8) {
-            top: 13.64px;
-            left: -13.64px;
-            -webkit-transform: rotate(45deg);
-            transform: rotate(45deg);
-            animation: line-spin-fade-loader 1.2s 0s infinite ease-in-out
-        }
-    }
+.jstype {
+    background-color: #69c0ff;
 }
 
 
 #app {
     width: 100vw;
-    height: 100vh;
+    //height: 100vh;
     background-color: #ffffff;
     color: #000000;
     display: flex;
@@ -975,6 +1016,8 @@ html, body, #app {
         flex-flow: column;
         transition: border 200ms ease-in-out;
         padding: 10px;
+        height: 100vh;
+        overflow: auto;
 
         table {
             border: 1px solid #d9d9d9;
@@ -993,10 +1036,12 @@ html, body, #app {
         display: flex;
         flex-flow: column;
         transition: border 200ms ease-in-out;
+        height: 100vh;
 
         .table_box {
-            height: 300px;
-            overflow: auto;
+            height: 420px;
+            overflow-y: auto;
+            overflow-x: hidden;
             border-bottom: 2px solid #d9d9d9;
             transition: border 200ms ease-in-out;
             padding: 10px;
@@ -1004,7 +1049,7 @@ html, body, #app {
 
         .chart_box {
             width: 100%;
-            height: calc(100vh - 20px - 300px);
+            height: calc(100vh - 20px - 420px);
             overflow-y: auto;
             overflow-x: hidden;
             display: flex;
@@ -1014,8 +1059,12 @@ html, body, #app {
 
             .charts_item {
                 width: 100%;
-                height: 500px;
+                height: 200px;
+            }
 
+            .charts_item_qx {
+                width: 100%;
+                height: 300px;
             }
         }
     }
@@ -1078,14 +1127,5 @@ html, body, #app {
     }
 }
 
-
-@keyframes line-spin-fade-loader {
-    50% {
-        opacity: .3
-    }
-    100% {
-        opacity: 1
-    }
-}
 
 </style>
